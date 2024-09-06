@@ -42,3 +42,11 @@ pub(crate) fn run_prompt(){
 pub(crate) fn run(source: String){
     
 }
+
+pub fn error(line: i32, message: String){
+    report(line, "".to_string(), message);
+}
+
+pub(crate) fn report(line: i32, whereLocation: String, message: String){
+    
+}
