@@ -82,166 +82,6 @@ pub enum Literal {
     None,
 }
 
-pub struct Lexer<'source> {
-    source: &'source str,
-    start: usize,
-    current: usize,
-    line: usize,
-}
-
-pub trait Iterator {
-    type Item;
-
-    fn next(&mut self) -> Option<Self::Item>;
-}
-
-impl<'source>Iterator for Lexer<'source> {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.is_at_end() {
-            self.start = self.current;
-            let character = self.advance();
-            let token = if let Some(character) = character {
-                match character {
-                    '(' => {
-                        Some(self.yield_token(LeftParen))
-                    }
-                    ')' => {
-                        Some(self.yield_token(RightParen))
-                    }
-                    '{' => {
-                        Some(self.yield_token(LeftBrace))
-                    }
-                    '}' => {
-                        Some(self.yield_token(RightBrace))
-                    }
-                    ',' => {
-                        Some(self.yield_token(Comma))
-                    }
-                    '.' => {
-                        Some(self.yield_token(Dot))
-                    }
-                    '-' => {
-                        Some(self.yield_token(Minus))
-                    }
-                    '+' => {
-                        Some(self.yield_token(Plus))
-                    }
-                    ';' => {
-                        Some(self.yield_token(Semicolon))
-                    }
-                    ':' => {
-                        Some(self.yield_token(Colon))
-                    }
-                    '%' => {
-                        Some(self.yield_token(Mod))
-                    }
-                    '*' => {
-                        Some(self.yield_token(Star))
-                    }
-                    '!' => {
-                        let token = if self.char_matches('=') {
-                            BangEqual
-                        } else {
-                            Bang
-                        };
-                        Some(self.yield_token(token))
-                    }
-                    '=' => {
-                        let token = if self.char_matches('='){
-                            EqualEqual
-                        } else {
-                            Equal
-                        };
-                        Some(self.yield_token(token))
-                    }
-                    '<' => {
-                        let token = if self.char_matches('=') {
-                            LessEqual
-                        } else {
-                            Less
-                        };
-                        Self(self.yield_token(token))
-                    }
-                    '>' => {
-                        let token = if self.char_matches('=') {
-                            GreaterEqual
-                        } else {
-                            Greater
-                        };
-                        Some(self.yield_token(token))
-                    }
-                    '/' => {
-                        if self.char_matches('/') {
-                            let comment_value = self.take_while(|ch| ch != '\n');
-                            match comment_value{
-                                Some((comment, _)) => {
-                                    Some(Token::new(TokenType::Comment, comment.to_string(), Literal::String(comment.to_string()), self.line))
-                                }
-                                None => {
-                                        Some(Token::new(TokenType::Error, "Error fetchingcomment tokens".into() Literal::None, self.line))
-                                }
-                            }
-                        } else if self.char_matches('*') {
-                            let mut found_closing_pair = false;
-                            let mut comment_buffer = String::new();
-                            while let (Some(ch), Some(next_ch)) = (self.peek(),self.peek_next()) {
-                                if ch == '*' && next_ch == '/' {
-                                    found_closing_pair = true;
-                                    break;
-                                }
-                                else {
-                                    let char = self.advance();
-                                    if let Some(ch) = char {
-                                        comment_buffer.push(ch);
-                                    }
-                                }
-                            }
-                            if !found_closing_pair {
-                                panic!("Found an unclosed comment");
-                            }
-                            self.advance();
-                            self.advance();
-                            Some(Token::new(TokenType::Comment,comment_buffer.clone(), Literal::String(comment_buffer), self.line))
-                        } else {
-                            Some(self.yield_token(Slash))
-                        }
-                    }
-                    '\n' => {
-                        self.line += 1;
-                        Some(self.yield_token(Newline))
-                    }
-                    '"' => {
-                        let sox_string = self.yield_string();
-                        self.token_from_result(sox_string)
-                    }
-                    'A'..='Z' | 'a'..='z' | '_' => {
-                        let ident_val = self.yield_identifier();
-                        self.token_from_result(ident_val)
-                    }
-                    '0'..='9' => {
-                        let number_val = self.yield_number();
-                        self.token_from_result(numer_val)
-                    }
-                    ' ' => {
-                        Some(self.yield_token(TokenType::Whitespace))
-                    }
-                    _ => {
-                        debug!("Token -{character} - not allowed set of valid tokens");
-                        Some(Token::new(TokenType::Error, "Token -{character} - not in allowed set of valid tokens".into(), Literal::None, self.line))
-                    }
-                }
-            } else {
-                Some(Token::new(TokenType::Error, "No more characters to lex".into(), Literal::None, self.line))
-            };
-            token
-        } else {
-            None
-        }
-    }
-}
-
 pub(crate) fn run_file(file_path: String){
     let file_contents: Result<String, Error> = fs::read_to_string(file_path.clone());
     let file_contents: String = match file_contents{
@@ -263,7 +103,8 @@ pub(crate) fn run_prompt(){
 }
 
 pub(crate) fn run(source: String){
-    Vec<Token> tokens = 
+//    Vec<Token> tokens = 
+// TODO: get scanner functionality
 }
 
 pub fn error(line: i32, message: String){
@@ -284,7 +125,7 @@ where P: AsRef<Path>, {
 fn main() {
     if let Ok(lines) = read_lines("./hosts.txt") {
         for line in lines.flatten() {
-            println!("[]", line);
+        //    println!("[]", line);
         }
     }
 }
