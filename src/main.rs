@@ -1,4 +1,4 @@
-mod lox;
+mod scanner;
 use std::env;
 use std::fs::File;
 
