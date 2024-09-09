@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use std::env;
+use std::{default, env};
 use std::fs;
 use std::process;
 use std::io::Error;
@@ -61,7 +61,6 @@ pub enum TokenType {
     Var,
     While,
     Lambda,
-
     Eof,
 }
 
@@ -80,6 +79,50 @@ pub enum Literal {
     Number(f64),
     Boolean(bool),
     None,
+}
+
+pub struct Scanner{
+    tokens: Vec<Token>,
+    source: Vec<u8>,
+    error: Option<Error>,
+    start: usize,
+    current: usize,
+    line: usize,
+    column: i64,
+    keywords: HashMap<String, TokenType>,
+}
+
+impl Default for Scanner{
+    fn default() -> Scanner {
+        Scanner{
+            tokens: Vec::new(),
+            source: Vec::new(),
+            error: None,
+            start: 0,
+            current: 0,
+            line: 1,
+            column: -1,
+            keywords: vec![
+                ("and".to_string(), TokenType::And),
+                ("class".to_string(), TokenType::Class),
+                ("else".to_string(), TokenType::Else),
+                ("false".to_string(), TokenType::False),
+                ("for".to_string(), TokenType::For),
+                ("fun".to_string(), TokenType::Fun),
+                ("if".to_string(), TokenType::If),
+                ("nil".to_string(), TokenType::Nil),
+                ("or".to_string(), TokenType::Or),
+                ("print".to_string(), TokenType::Print),
+                ("return".to_string(), TokenType::Return),
+                ("super".to_string(), TokenType::Super),
+                ("this".to_string(), TokenType::This),
+                ("true".to_string(), TokenType::True),
+                ("var".to_string(), TokenType::Var),
+                ("while".to_string(), TokenType::While),
+                ("lambda".to_string(), TokenType::Lambda)
+            ].into_iter().map(|(k, v)| (k, v)).collect()
+        }
+    }
 }
 
 pub(crate) fn run_file(file_path: String){
@@ -111,7 +154,7 @@ pub fn error(line: i32, message: String){
     report(line, "".to_string(), message);
 }
 
-pub(crate) fn report(line: i32, whereLocation: String, message: String){
+pub(crate) fn report(line: i32, where_location: String, message: String){
     
 }
 
