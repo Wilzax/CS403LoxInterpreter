@@ -71,6 +71,7 @@ pub struct Token {
     pub lexeme: Vec<u8>,
     pub literal: Option<Literal>,
     pub line: usize,
+    pub column: i64
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -224,7 +225,7 @@ impl Scanner{
 
     fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>){
         let text = self.source[self.start..self.current].to_vec();
-        self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line })
+        self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line, column: self.column })
     }
 
     fn matches(&mut self, expected_char: char) -> bool{
