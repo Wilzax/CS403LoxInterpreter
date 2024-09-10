@@ -68,8 +68,8 @@ pub enum TokenType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: String,
-    pub literal: Literal,
+    pub lexeme: Vec<u8>,
+    pub literal: Option<Literal>,
     pub line: usize,
 }
 
@@ -122,6 +122,125 @@ impl Default for Scanner{
                 ("lambda".to_string(), TokenType::Lambda)
             ].into_iter().map(|(k, v)| (k, v)).collect()
         }
+    }
+}
+
+impl Scanner{
+    fn scan_tokens(&mut self, input_file: String){
+        //Starts scanning process, continues until eof or error
+        self.source = input_file.into_bytes();
+        while !self.is_finished(){
+            self.start = self.current;
+            self.scan_individual_tokens();
+        }
+        //Add error handling implementation
+    }
+
+    fn scan_individual_tokens(&mut self){
+        //Main scanning function, all other functions are helpers
+        let scanned_char: char = self.advance_char();
+
+        match scanned_char {
+            '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            '[' => self.add_token(TokenType::LeftBracket, None),
+            ']' => self.add_token(TokenType::RightBracket, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Dot, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::Semicolon, None),
+            ':' => self.add_token(TokenType::Colon, None),
+            '*' => self.add_token(TokenType::Star, None),
+            '%' => self.add_token(TokenType::Mod,None),
+            '!' => {
+                let is_equal = self.matches('=');
+                if(is_equal){
+                    self.add_token(TokenType::BangEqual, None);
+                }
+                else{
+                    self.add_token(TokenType::Bang, None);
+                }
+            }
+            '=' => {
+                let is_equal = self.matches('=');
+                if(is_equal){
+                    self.add_token(TokenType::EqualEqual, None);
+                }
+                else{
+                    self.add_token(TokenType::Equal, None);
+                }
+            }
+            '<' => {
+                let is_equal = self.matches('=');
+                if(is_equal){
+                    self.add_token(TokenType::LessEqual, None);
+                }
+                else{
+                    self.add_token(TokenType::Less, None);
+                }
+            }
+            '>' => {
+                let is_equal = self.matches('=');
+                if(is_equal){
+                    self.add_token(TokenType::GreaterEqual, None);
+                }
+                else{
+                    self.add_token(TokenType::Greater, None);
+                }
+            }
+            '/' => {
+                let is_equal = self.matches('/');
+                if(is_equal){
+                    //Implement comment recognition
+                }
+                else{
+                    self.add_token(TokenType::Slash, None);
+                }
+            }
+            '\n' => {
+                self.line += 1;
+                self.column = 0;
+            }
+            ' ' | '\r' | '\t' => {}
+            //'"' => implement start of string
+            //following is for all other characters
+            _ => {
+                //implement number, letter, and error
+            }
+
+
+
+        }
+    }
+
+    fn advance_char(&mut self) -> char {
+        self.current += 1;
+        self.column += 1;
+        return char::from(self.source[self.current - 1]);
+    }
+
+    fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>){
+        let text = self.source[self.start..self.current].to_vec();
+        self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line })
+    }
+
+    fn matches(&mut self, expected_char: char) -> bool{
+        if(self.is_finished()){
+            return false;
+        }
+        else if(char::from(self.source[self.current]) != expected_char){
+            return false;
+        }
+        self.current += 1;
+        self.column += 1;
+        return true;
+    }
+
+    fn is_finished(&self) -> bool{
+        return self.current >= self.source.len();
     }
 }
 
