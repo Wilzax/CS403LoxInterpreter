@@ -77,9 +77,9 @@ pub struct Token {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
+    Identifier(String),
     String(String),
     Number(f64),
-    Boolean(bool),
     None,
 }
 
@@ -135,14 +135,18 @@ impl Default for Scanner{
 }
 
 impl Scanner{
-    fn scan_tokens(&mut self, input_file: String){
+    fn scan_tokens(&mut self, input_file: String) -> Vec<Token>{
         //Starts scanning process, continues until eof or error
         self.source = input_file.into_bytes();
-        while !self.is_finished(){
+        while !self.is_done_with_error(){
             self.start = self.current;
             self.scan_individual_tokens();
         }
-        //Add error handling implementation
+        match self.error{
+            Some(_) => {},
+            None => self.tokens.push(Token { token_type: TokenType::Eof, lexeme: Vec::new(), literal: None, line: self.line, column: self.column })
+        }
+        return self.tokens.clone();
     }
 
     fn scan_individual_tokens(&mut self){
@@ -252,6 +256,14 @@ impl Scanner{
         return c.is_ascii_digit();
     }
 
+    fn is_alpha(c: char) -> bool{
+        return c.is_alphabetic();
+    }
+
+    fn is_alpha_num(c: char) -> bool{
+        return Scanner::is_digit(c) || Scanner::is_alpha(c);
+    }
+
     fn peek(&mut self) -> char{
         if self.is_finished(){
             return '\0';
@@ -305,11 +317,27 @@ impl Scanner{
         self.add_token(TokenType::Number, Some(Literal::Number((value))));
     }
 
+    fn identifier (&mut self){
+        while Scanner::is_alpha_num(self.peek()){
+            self.advance_char();
+        }
+        let value = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap();
+        let token_type = match self.keywords.get(&value){
+            Some(key_token_type) => *key_token_type,
+            None => TokenType::Identifier,
+        };
+
+        match token_type{
+            TokenType::Identifier => self.add_token(TokenType::Identifier, Some(Literal::Identifier(value))),
+            _ => self.add_token(token_type, None),
+        }
+    }
+
     fn discard_comment(&mut self){
         let mut next_char = self.peek();
         while next_char != '\n' && !self.is_finished(){
             self.advance_char();
-            next_char = char::from(self.source[self.current]);
+            next_char = self.peek();
         }
     }
 
@@ -323,7 +351,7 @@ impl Scanner{
             if current_char == '*'{
                 if self.peek() == '/'{
                     self.advance_char();
-                    break;
+                    return;
                 }
             }
         }
@@ -349,6 +377,10 @@ impl Scanner{
     fn is_finished(&self) -> bool{
         return self.current >= self.source.len();
     }
+
+    fn is_done_with_error(&self) -> bool{
+        return self.is_finished() || self.error.is_some();
+    }
 }
 
 pub(crate) fn run_file(file_path: String){
@@ -372,8 +404,12 @@ pub(crate) fn run_prompt(){
 }
 
 pub(crate) fn run(source: String){
-//    Vec<Token> tokens = 
-// TODO: get scanner functionality
+    let mut scanner = Scanner::default();
+    let tokens = scanner.scan_tokens(source);
+    for token in tokens{
+        println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
+        //println!("{}", String::from_utf8(token.token_type).tov)
+    }
 }
 
 pub fn error(line: i32, message: String){
@@ -397,5 +433,17 @@ fn main() {
         //    println!("[]", line);
         }
     }
+}
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+
+    #[test]
+    fn print_token(){
+        let tokens = "/ and *".to_string();
+        run(tokens);
+    }
+    
 }
 
