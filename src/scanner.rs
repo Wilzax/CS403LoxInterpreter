@@ -82,10 +82,17 @@ pub enum Literal {
     None,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScannerError{
+    pub error: String,
+    pub line: usize,
+    pub column: i64,
+}
+
 pub struct Scanner{
     tokens: Vec<Token>,
     source: Vec<u8>,
-    error: Option<Error>,
+    error: Option<ScannerError>,
     start: usize,
     current: usize,
     line: usize,
@@ -221,7 +228,11 @@ impl Scanner{
 
                 }
                 else {
-                    //Implement error
+                    self.error = Some(ScannerError{
+                        error: format!("Scanner can not process {}", scanned_char),
+                        line: self.line,
+                        column: self.column,
+                    });
                 }
             }
 
@@ -236,13 +247,20 @@ impl Scanner{
         return char::from(self.source[self.current - 1]);
     }
 
+    fn peek(&mut self) -> char{
+        if self.is_finished(){
+            return '\0';
+        }
+        return char::from(self.source[self.current]);
+    }
+
     fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>){
         let text = self.source[self.start..self.current].to_vec();
         self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line, column: self.column })
     }
 
     fn discard_comment(&mut self){
-        let mut next_char = char::from(self.source[self.current]);
+        let mut next_char = self.peek();
         while next_char != '\n' && !self.is_finished(){
             self.advance_char();
             next_char = char::from(self.source[self.current]);
@@ -250,7 +268,6 @@ impl Scanner{
     }
 
     fn discard_block_comment(&mut self){
-        let mut next_char = char::from(self.source[self.current]);
         while !self.is_finished(){
             let mut current_char = self.advance_char();
             if current_char == '\n'{
@@ -264,14 +281,18 @@ impl Scanner{
                 }
             }
         }
-        //Only reaches here on unterminated block comment, needs error implementation
+        self.error = Some(ScannerError{
+            error: format!("Unclosed block comment"),
+            line: self.line,
+            column: self.column,
+        })
     }
 
     fn matches(&mut self, expected_char: char) -> bool{
         if self.is_finished() {
             return false;
         }
-        else if char::from(self.source[self.current]) != expected_char {
+        else if self.peek() != expected_char {
             return false;
         }
         self.current += 1;
