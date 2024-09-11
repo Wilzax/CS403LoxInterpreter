@@ -80,7 +80,6 @@ pub enum Literal {
     Identifier(String),
     String(String),
     Number(f64),
-    None,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -227,10 +226,10 @@ impl Scanner{
             _ => {
                 //implement number, letter, and error
                 if scanned_char.is_ascii_digit() {
-
+                    self.number();
                 }
-                else if scanned_char.is_alphabetic() {
-
+                else if scanned_char.is_ascii_alphabetic() {
+                    self.identifier();
                 }
                 else {
                     self.error = Some(ScannerError{
@@ -257,7 +256,7 @@ impl Scanner{
     }
 
     fn is_alpha(c: char) -> bool{
-        return c.is_alphabetic();
+        return c.is_ascii_alphabetic();
     }
 
     fn is_alpha_num(c: char) -> bool{
@@ -289,7 +288,6 @@ impl Scanner{
                 self.line += 1;
                 self.column = 0;
             }
-            self.advance_char();
             if self.is_finished(){
                 self.error = Some(ScannerError{
                     error: format!("Unterminated string"),
@@ -314,7 +312,7 @@ impl Scanner{
             self.advance_char();
         }
         let value: f64 = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap().parse().unwrap();
-        self.add_token(TokenType::Number, Some(Literal::Number((value))));
+        self.add_token(TokenType::Number, Some(Literal::Number(value)));
     }
 
     fn identifier (&mut self){
@@ -408,7 +406,6 @@ pub(crate) fn run(source: String){
     let tokens = scanner.scan_tokens(source);
     for token in tokens{
         println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
-        //println!("{}", String::from_utf8(token.token_type).tov)
     }
 }
 
