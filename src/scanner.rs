@@ -198,6 +198,9 @@ impl Scanner{
                     //Implement comment recognition
                     self.discard_comment();
                 }
+                else if self.matches('*'){
+                    self.discard_block_comment();
+                }
                 else{
                     self.add_token(TokenType::Slash, None);
                 }
@@ -211,6 +214,15 @@ impl Scanner{
             //following is for all other characters
             _ => {
                 //implement number, letter, and error
+                if scanned_char.is_ascii_digit() {
+
+                }
+                else if scanned_char.is_alphabetic() {
+
+                }
+                else {
+                    //Implement error
+                }
             }
 
 
@@ -235,6 +247,24 @@ impl Scanner{
             self.advance_char();
             next_char = char::from(self.source[self.current]);
         }
+    }
+
+    fn discard_block_comment(&mut self){
+        let mut next_char = char::from(self.source[self.current]);
+        while !self.is_finished(){
+            let mut current_char = self.advance_char();
+            if current_char == '\n'{
+                self.line += 1;
+                self.column = 0;
+            }
+            else if current_char == '*'{
+                if char::from(self.source[self.current]) == '/'{
+                    self.advance_char();
+                    break;
+                }
+            }
+        }
+        //Only reaches here on unterminated block comment, needs error implementation
     }
 
     fn matches(&mut self, expected_char: char) -> bool{
@@ -301,3 +331,4 @@ fn main() {
         }
     }
 }
+
