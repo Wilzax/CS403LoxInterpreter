@@ -158,7 +158,7 @@ impl Scanner{
             '%' => self.add_token(TokenType::Mod,None),
             '!' => {
                 let is_equal = self.matches('=');
-                if(is_equal){
+                if is_equal {
                     self.add_token(TokenType::BangEqual, None);
                 }
                 else{
@@ -167,7 +167,7 @@ impl Scanner{
             }
             '=' => {
                 let is_equal = self.matches('=');
-                if(is_equal){
+                if is_equal {
                     self.add_token(TokenType::EqualEqual, None);
                 }
                 else{
@@ -176,7 +176,7 @@ impl Scanner{
             }
             '<' => {
                 let is_equal = self.matches('=');
-                if(is_equal){
+                if is_equal {
                     self.add_token(TokenType::LessEqual, None);
                 }
                 else{
@@ -185,7 +185,7 @@ impl Scanner{
             }
             '>' => {
                 let is_equal = self.matches('=');
-                if(is_equal){
+                if is_equal {
                     self.add_token(TokenType::GreaterEqual, None);
                 }
                 else{
@@ -194,8 +194,9 @@ impl Scanner{
             }
             '/' => {
                 let is_equal = self.matches('/');
-                if(is_equal){
+                if is_equal {
                     //Implement comment recognition
+                    self.discard_comment();
                 }
                 else{
                     self.add_token(TokenType::Slash, None);
@@ -228,11 +229,19 @@ impl Scanner{
         self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line, column: self.column })
     }
 
+    fn discard_comment(&mut self){
+        let mut next_char = char::from(self.source[self.current]);
+        while next_char != '\n' && !self.is_finished(){
+            self.advance_char();
+            next_char = char::from(self.source[self.current]);
+        }
+    }
+
     fn matches(&mut self, expected_char: char) -> bool{
-        if(self.is_finished()){
+        if self.is_finished() {
             return false;
         }
-        else if(char::from(self.source[self.current]) != expected_char){
+        else if char::from(self.source[self.current]) != expected_char {
             return false;
         }
         self.current += 1;
