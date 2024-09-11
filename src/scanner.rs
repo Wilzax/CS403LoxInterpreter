@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
+use std::iter::Scan;
 use std::path::Path;
 use std::{default, env};
 use std::fs;
@@ -217,7 +218,7 @@ impl Scanner{
                 self.column = 0;
             }
             ' ' | '\r' | '\t' => {}
-            //'"' => implement start of string
+            '"' => self.string(),
             //following is for all other characters
             _ => {
                 //implement number, letter, and error
@@ -247,6 +248,10 @@ impl Scanner{
         return char::from(self.source[self.current - 1]);
     }
 
+    fn is_digit(c: char) -> bool{
+        return c.is_ascii_digit();
+    }
+
     fn peek(&mut self) -> char{
         if self.is_finished(){
             return '\0';
@@ -254,9 +259,50 @@ impl Scanner{
         return char::from(self.source[self.current]);
     }
 
+    fn peek_next(&mut self) -> char{
+        if self.current + 1 >= self.source.len(){
+            return '\0';
+        }
+        return char::from(self.source[self.current + 1]);
+    }
+
     fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>){
         let text = self.source[self.start..self.current].to_vec();
         self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line, column: self.column })
+    }
+
+    fn string (&mut self){
+        while self.peek() != '"' && !self.is_finished(){
+            if self.peek() == '\n'{
+                self.line += 1;
+                self.column = 0;
+            }
+            self.advance_char();
+            if self.is_finished(){
+                self.error = Some(ScannerError{
+                    error: format!("Unterminated string"),
+                    line: self.line,
+                    column: self.column,
+                })
+            }
+            self.advance_char();
+            let value = String::from_utf8(self.source[self.start + 1..self.current - 1].to_vec()).unwrap();
+            self.add_token(TokenType::String, Some(Literal::String(value)));
+        }
+    }
+
+    fn number (&mut self){
+        while Scanner::is_digit(self.peek()){
+            self.advance_char();
+        }
+        if self.peek() == '.' && Scanner::is_digit(self.peek_next()){
+            self.advance_char();
+        }
+        while Scanner::is_digit(self.peek()){
+            self.advance_char();
+        }
+        let value: f64 = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap().parse().unwrap();
+        self.add_token(TokenType::Number, Some(Literal::Number((value))));
     }
 
     fn discard_comment(&mut self){
@@ -269,13 +315,13 @@ impl Scanner{
 
     fn discard_block_comment(&mut self){
         while !self.is_finished(){
-            let mut current_char = self.advance_char();
-            if current_char == '\n'{
+            if self.peek() == '\n'{
                 self.line += 1;
                 self.column = 0;
             }
-            else if current_char == '*'{
-                if char::from(self.source[self.current]) == '/'{
+            let mut current_char = self.advance_char();
+            if current_char == '*'{
+                if self.peek() == '/'{
                     self.advance_char();
                     break;
                 }
