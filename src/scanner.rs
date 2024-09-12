@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::iter::Scan;
 use std::path::Path;
-use std::{default, env};
 use std::fs;
-use std::process;
 use std::io::Error;
 use std::str;
-use text_io::{read, scan};
+use text_io::read;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
@@ -142,13 +139,21 @@ impl Scanner{
             self.scan_individual_tokens();
         }
         match self.error{
-            Some(_) => {},
-            None => self.tokens.push(Token { token_type: TokenType::Eof, lexeme: Vec::new(), literal: None, line: self.line, column: self.column })
+            Some(_) => {
+                print_error(self.error.clone().unwrap());
+                return Vec::new();
+                },
+            None => self.tokens.push(Token { 
+                token_type: TokenType::Eof, 
+                lexeme: Vec::new(), 
+                literal: None, 
+                line: self.line, 
+                column: self.column })
         }
         return self.tokens.clone();
     }
 
-    fn scan_individual_tokens(&mut self){
+    fn scan_individual_tokens(&mut self) -> (){
         //Main scanning function, all other functions are helpers
         let scanned_char: char = self.advance_char();
 
@@ -168,7 +173,7 @@ impl Scanner{
             '*' => self.add_token(TokenType::Star, None),
             '%' => self.add_token(TokenType::Mod,None),
             '!' => {
-                let is_equal = self.matches('=');
+                let is_equal: bool = self.matches('=');
                 if is_equal {
                     self.add_token(TokenType::BangEqual, None);
                 }
@@ -177,7 +182,7 @@ impl Scanner{
                 }
             }
             '=' => {
-                let is_equal = self.matches('=');
+                let is_equal: bool = self.matches('=');
                 if is_equal {
                     self.add_token(TokenType::EqualEqual, None);
                 }
@@ -186,7 +191,7 @@ impl Scanner{
                 }
             }
             '<' => {
-                let is_equal = self.matches('=');
+                let is_equal: bool = self.matches('=');
                 if is_equal {
                     self.add_token(TokenType::LessEqual, None);
                 }
@@ -195,7 +200,7 @@ impl Scanner{
                 }
             }
             '>' => {
-                let is_equal = self.matches('=');
+                let is_equal: bool = self.matches('=');
                 if is_equal {
                     self.add_token(TokenType::GreaterEqual, None);
                 }
@@ -204,7 +209,7 @@ impl Scanner{
                 }
             }
             '/' => {
-                let is_equal = self.matches('/');
+                let is_equal: bool = self.matches('/');
                 if is_equal {
                     //Implement comment recognition
                     self.discard_comment();
@@ -277,31 +282,38 @@ impl Scanner{
         return char::from(self.source[self.current + 1]);
     }
 
-    fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>){
-        let text = self.source[self.start..self.current].to_vec();
-        self.tokens.push(Token { token_type: add_token_type, lexeme: text, literal: add_literal, line: self.line, column: self.column })
+    fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>) -> (){
+        let text: Vec<u8> = self.source[self.start..self.current].to_vec();
+        self.tokens.push(Token { 
+            token_type: add_token_type, 
+            lexeme: text, 
+            literal: add_literal, 
+            line: self.line, 
+            column: self.column })
     }
 
-    fn string (&mut self){
+    fn string (&mut self) -> (){
         while self.peek() != '"' && !self.is_finished(){
             if self.peek() == '\n'{
                 self.line += 1;
                 self.column = 0;
             }
+            self.advance_char();
+        }
             if self.is_finished(){
                 self.error = Some(ScannerError{
                     error: format!("Unterminated string"),
                     line: self.line,
                     column: self.column,
-                })
+                });
+                return;
             }
             self.advance_char();
-            let value = String::from_utf8(self.source[self.start + 1..self.current - 1].to_vec()).unwrap();
+            let value: String = String::from_utf8(self.source[self.start + 1..self.current - 1].to_vec()).unwrap();
             self.add_token(TokenType::String, Some(Literal::String(value)));
-        }
     }
 
-    fn number (&mut self){
+    fn number (&mut self) -> (){
         while Scanner::is_digit(self.peek()){
             self.advance_char();
         }
@@ -315,12 +327,12 @@ impl Scanner{
         self.add_token(TokenType::Number, Some(Literal::Number(value)));
     }
 
-    fn identifier (&mut self){
+    fn identifier (&mut self) -> (){
         while Scanner::is_alpha_num(self.peek()){
             self.advance_char();
         }
-        let value = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap();
-        let token_type = match self.keywords.get(&value){
+        let value: String = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap();
+        let token_type: TokenType = match self.keywords.get(&value){
             Some(key_token_type) => *key_token_type,
             None => TokenType::Identifier,
         };
@@ -331,21 +343,21 @@ impl Scanner{
         }
     }
 
-    fn discard_comment(&mut self){
-        let mut next_char = self.peek();
+    fn discard_comment(&mut self) -> (){
+        let mut next_char: char = self.peek();
         while next_char != '\n' && !self.is_finished(){
             self.advance_char();
             next_char = self.peek();
         }
     }
 
-    fn discard_block_comment(&mut self){
+    fn discard_block_comment(&mut self) -> (){
         while !self.is_finished(){
             if self.peek() == '\n'{
                 self.line += 1;
                 self.column = 0;
             }
-            let mut current_char = self.advance_char();
+            let current_char = self.advance_char();
             if current_char == '*'{
                 if self.peek() == '/'{
                     self.advance_char();
@@ -381,7 +393,7 @@ impl Scanner{
     }
 }
 
-pub(crate) fn run_file(file_path: String){
+pub(crate) fn run_file(file_path: String) -> (){
     let file_contents: Result<String, Error> = fs::read_to_string(file_path.clone());
     let file_contents: String = match file_contents{
         Ok(file_string) => file_string,
@@ -390,10 +402,10 @@ pub(crate) fn run_file(file_path: String){
     run(file_contents);
 }
 
-pub(crate) fn run_prompt(){
+pub(crate) fn run_prompt() ->(){
     loop{
         println!("> ");
-        let mut line: String = read!("{}\n");
+        let line: String = read!("{}\n");
         if line.trim().is_empty(){
             break;
         }
@@ -401,20 +413,17 @@ pub(crate) fn run_prompt(){
     }
 }
 
-pub(crate) fn run(source: String){
-    let mut scanner = Scanner::default();
-    let tokens = scanner.scan_tokens(source);
+pub(crate) fn run(source: String) ->(){
+    let mut scanner: Scanner = Scanner::default();
+    let tokens: Vec<Token> = scanner.scan_tokens(source);
     for token in tokens{
         println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
     }
 }
 
-pub fn error(line: i32, message: String){
-    report(line, "".to_string(), message);
-}
-
-pub(crate) fn report(line: i32, where_location: String, message: String){
-    
+pub fn print_error(scanner_error: ScannerError) ->(){
+    println!("Error Occurred: {} at line {}, column {}", 
+    scanner_error.error, scanner_error.line, scanner_error.column);
 }
 
 // Returns an iterator to the read of the lines of the file. Output is wrapped in a Result to allow matching on errors

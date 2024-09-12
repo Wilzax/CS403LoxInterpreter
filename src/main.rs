@@ -4,7 +4,7 @@ use std::fs::File;
 
 fn main() {
     println!("Hello, world!");
-    scanner::run("/ * 82 and for 23.1".to_string());
+    scanner::run("/*goodbye*/ world 73.23 21 and or ()) /".to_string());
     
     let args: Vec<String> = env::args().collect();
     println!("Detected {} main arguments", args.len());
