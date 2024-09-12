@@ -357,7 +357,7 @@ impl Scanner{
                 self.line += 1;
                 self.column = 0;
             }
-            let current_char = self.advance_char();
+            let current_char: char = self.advance_char();
             if current_char == '*'{
                 if self.peek() == '/'{
                     self.advance_char();
