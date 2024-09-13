@@ -142,17 +142,17 @@ impl Scanner{
             Some(_) => {
                 print_error(self.error.clone().unwrap());
                 return Vec::new();
-                },
-            None => self.tokens.push(Token { 
-                token_type: TokenType::Eof, 
-                lexeme: Vec::new(), 
-                literal: None, 
-                line: self.line, 
+            },
+            None => self.tokens.push(Token {
+                token_type: TokenType::Eof,
+                lexeme: Vec::new(),
+                literal: None,
+                line: self.line,
                 column: self.column })
         }
         return self.tokens.clone();
     }
-
+    
     fn scan_individual_tokens(&mut self) -> (){
         //Main scanning function, all other functions are helpers
         let scanned_char: char = self.advance_char();
@@ -284,14 +284,14 @@ impl Scanner{
 
     fn add_token(&mut self, add_token_type: TokenType, add_literal: Option<Literal>) -> (){
         let text: Vec<u8> = self.source[self.start..self.current].to_vec();
-        self.tokens.push(Token { 
-            token_type: add_token_type, 
-            lexeme: text, 
-            literal: add_literal, 
-            line: self.line, 
+        self.tokens.push(Token {
+            token_type: add_token_type,
+            lexeme: text,
+            literal: add_literal,
+            line: self.line,
             column: self.column })
     }
-
+    
     fn string (&mut self) -> (){
         while self.peek() != '"' && !self.is_finished(){
             if self.peek() == '\n'{
@@ -336,13 +336,13 @@ impl Scanner{
             Some(key_token_type) => *key_token_type,
             None => TokenType::Identifier,
         };
-
+        
         match token_type{
             TokenType::Identifier => self.add_token(TokenType::Identifier, Some(Literal::Identifier(value))),
             _ => self.add_token(token_type, None),
         }
     }
-
+    
     fn discard_comment(&mut self) -> (){
         let mut next_char: char = self.peek();
         while next_char != '\n' && !self.is_finished(){
@@ -450,6 +450,120 @@ mod tests{
         let tokens = "/ and *".to_string();
         run(tokens);
     }
+
+    #[test]
+    fn scan_single_character_tokens() {
+        let source = "( ) { } [ ] , . - + ; : * %".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        let expected_tokens = vec![
+            TokenType::LeftParen, TokenType::RightParen,
+            TokenType::LeftBrace, TokenType::RightBrace,
+            TokenType::LeftBracket, TokenType::RightBracket,
+            TokenType::Comma, TokenType::Dot,
+            TokenType::Minus, TokenType::Plus,
+            TokenType::Semicolon, TokenType::Colon,
+            TokenType::Star, TokenType::Mod,
+            TokenType::Eof
+        ];
+
+        let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
+        assert_eq!(expected_tokens, actual_tokens);
+    }
+
+    #[test]
+    fn scan_two_character_tokens() {
+        let source = "!= == >= <=".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        let expected_tokens = vec![
+            TokenType::BangEqual, TokenType::EqualEqual,
+            TokenType::GreaterEqual, TokenType::LessEqual,
+            TokenType::Eof
+        ];
+
+        let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
+        assert_eq!(expected_tokens, actual_tokens);
+    }
+
+    #[test]
+    fn scan_numbers() {
+        let source = "123 45.67".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].literal, Some(Literal::Number(123.0)));
+        assert_eq!(tokens[1].token_type, TokenType::Number);
+        assert_eq!(tokens[1].literal, Some(Literal::Number(45.67)));
+    }
+
+    #[test]
+    fn scan_string_literal() {
+        let source = "\"hello world\"".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert_eq!(tokens[0].token_type, TokenType::String);
+        assert_eq!(tokens[0].literal, Some(Literal::String("hello world".to_string())));
+    }
+
+    #[test]
+    fn scan_keywords() {
+        let source = "class var fun".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        let expected_tokens = vec![
+            TokenType::Class, TokenType::Var, TokenType::Fun,
+            TokenType::Eof
+        ];
+
+        let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
+        assert_eq!(expected_tokens, actual_tokens);
+    }
     
+    #[test]
+    fn unterminated_string_error() {
+        let source = "\"hello world".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert!(scanner.error.is_some());
+        assert_eq!(scanner.error.unwrap().error, "Unterminated string");
+    }
+
+    #[test]
+    fn skip_single_line_comment() {
+        let source = "// this is a comment\n123".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].literal, Some(Literal::Number(123.0)));
+    }
+
+    #[test]
+    fn skip_block_comment() {
+        let source = "/* this is a block comment */123".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].literal, Some(Literal::Number(123.0)));
+    }
+
+    #[test]
+    fn unterminated_block_comment_error() {
+        let source = "/* unclosed comment".to_string();
+        let mut scanner = Scanner::default();
+        scanner.scan_tokens(source);
+
+        assert!(scanner.error.is_some());
+        assert_eq!(scanner.error.unwrap().error, "Unclosed block comment");
+    }
 }
+
 
