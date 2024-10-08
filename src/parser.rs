@@ -1,5 +1,5 @@
 use crate::scanner;
-use crate::scanner::{Token, TokenType};
+use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr; //Did not want to type scanner::Token 8000 times
 use crate::expr::Expr;
 
@@ -83,10 +83,8 @@ impl Parser{
     fn term(&mut self) -> Result<Expr, ParserError>{
         let mut expr: Expr = self.factor()?;
         while self.matches(vec![
-            TokenType::Greater, 
-            TokenType::GreaterEqual,
-            TokenType::Less,
-            TokenType::LessEqual
+            TokenType::Plus, 
+            TokenType::Minus,
             ]){
             let operator: Token = self.previous();
             let right: Expr = self.factor()?;
@@ -102,10 +100,8 @@ impl Parser{
     fn factor(&mut self) -> Result<Expr, ParserError>{
         let mut expr: Expr = self.unary()?;
         while self.matches(vec![
-            TokenType::Greater, 
-            TokenType::GreaterEqual,
-            TokenType::Less,
-            TokenType::LessEqual
+            TokenType::Slash, 
+            TokenType::Star,
             ]){
             let operator: Token = self.previous();
             let right: Expr = self.unary()?;
@@ -331,11 +327,43 @@ pub enum ParserError{
     },
 }
 
-pub fn parse_begin(in_tokens: Vec<Token>){
+pub fn parse_begin(in_tokens: Vec<Token>) -> Result<Expr, ParserError>{
     let mut parser: Parser = Parser{
         tokens: in_tokens,
         current: 0
     };
-    parser.parse();
+    let expr = parser.parse();
+    match expr{
+        Ok(expr) => return Ok(expr),
+        Err(err) => return Err(err)
+    };
     
+}
+
+#[cfg(test)]
+mod tests{
+    use expr::BinaryOpType;
+
+    use super::*;
+
+    #[test]
+    fn simple_addition(){
+        let input = "(3 + 4)".to_string();
+        let mut test_scanner: Scanner = Scanner::default();
+        let tokens: Vec<Token> = test_scanner.scan_tokens(input);
+        let expr: Result<Expr, ParserError> = parse_begin(tokens);
+        match expr{
+            Ok(express) =>{
+                if let Expr::Grouping { expression } = express{
+                    if let Expr::Binary { left  , operator , right, line: _, col: _ } = *expression{
+                        assert_eq!(*left, Expr::Literal { value: expr::LiteralType::Number(3.0)});
+                        assert_eq!(operator, BinaryOpType::Plus);
+                        assert_eq!(*right, Expr::Literal { value: expr::LiteralType::Number(4.0)});
+                    }
+                } 
+            }
+            Err(err) => assert_eq!(1, 2, "Parser Error In Grouping")
+        }
+
+    }
 }

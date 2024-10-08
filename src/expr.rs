@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::scanner::TokenType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Binary {
         left: Box<Expr>,
@@ -74,7 +74,7 @@ impl BinaryOpType{
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LiteralType{
     Number(f64),
     String(String),

@@ -132,7 +132,7 @@ impl Default for Scanner{
 }
 
 impl Scanner{
-    fn scan_tokens(&mut self, input_file: String) -> Vec<Token>{
+    pub fn scan_tokens(&mut self, input_file: String) -> Vec<Token>{
         //Starts scanning process, continues until eof or error
         self.source = input_file.into_bytes();
         while !self.is_done_with_error(){
@@ -417,7 +417,7 @@ pub(crate) fn run_prompt() ->(){
 pub(crate) fn run(source: String) ->(){
     let mut scanner: Scanner = Scanner::default();
     let tokens: Vec<Token> = scanner.scan_tokens(source);
-    parser::parse_begin(tokens.clone());
+    let expr = parser::parse_begin(tokens.clone());
 
     for token in tokens.clone(){
         println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
