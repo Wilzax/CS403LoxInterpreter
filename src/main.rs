@@ -1,6 +1,7 @@
 mod scanner;
 mod expr;
 mod parser;
+mod printer;
 use std::env;
 use std::fs::File;
 

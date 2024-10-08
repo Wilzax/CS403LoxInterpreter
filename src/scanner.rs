@@ -6,6 +6,7 @@ use std::fs;
 use std::io::Error;
 use std::str;
 use text_io::read;
+use crate::parser;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
@@ -416,7 +417,9 @@ pub(crate) fn run_prompt() ->(){
 pub(crate) fn run(source: String) ->(){
     let mut scanner: Scanner = Scanner::default();
     let tokens: Vec<Token> = scanner.scan_tokens(source);
-    for token in tokens{
+    parser::parse_begin(tokens.clone());
+
+    for token in tokens.clone(){
         println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
     }
 }
