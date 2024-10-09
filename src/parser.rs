@@ -1,5 +1,5 @@
 use crate::interpreter::Value;
-use crate::scanner;
+use crate::scanner::{self, Literal};
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr; //Did not want to type scanner::Token 8000 times
 use crate::expr::Expr;
@@ -49,7 +49,7 @@ impl Parser{
     pub fn parse(&mut self) -> Result<Vec<Stmt>, ParserError>{
         let mut statements:Vec<Stmt> = Vec::new();
         while !self.is_at_end(){
-            let stmt: Result<Stmt, ParserError> = self.statement();
+            let stmt: Result<Stmt, ParserError> = self.declaration();
             match stmt{
                 Ok(stmt) => statements.push(stmt),
                 Err(err) => return Err(err)
@@ -229,11 +229,24 @@ impl Parser{
             }
         }
         if self.matches(vec![TokenType::LeftParen]){
-            let mut expr: Expr = self.expression()?;
+            let expr: Expr = self.expression()?;
             let correct_end = self.consume(TokenType::RightParen, "Expect ')' after expression.".to_string());
             match correct_end{
                 Ok(token) => return Ok(Expr::Grouping { expression: Box::new(expr)}),
                 Err(err) => return Err(err)
+            }
+        }
+        if self.matches(vec![TokenType::Identifier]){
+            match self.previous().literal{
+                Some(Literal::Identifier(str)) => {
+                    return Ok(Expr::Variable { 
+                        name: str.clone(), 
+                        line: self.previous().line, 
+                        col: self.previous().column 
+                    })
+                },
+                Some(_) => panic!("Internal parser error when parsing Identifier"),
+                None => panic!("Found no literal when parsing Identifier")
             }
         }
         Err(ParserError::ExpectedExpression { 

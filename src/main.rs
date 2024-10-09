@@ -8,7 +8,7 @@ use std::fs::File;
 
 fn main() {
     println!("Hello, world!");
-    scanner::run("print 3+4;".to_string());
+    scanner::run("var heyop0 = 12;".to_string());
 
     let args: Vec<String> = env::args().collect();
     println!("Detected {} main arguments", args.len());

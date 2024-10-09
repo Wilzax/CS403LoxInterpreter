@@ -21,6 +21,11 @@ pub enum Expr {
         line: usize,
         col: i64,
     },
+    Variable {
+        name: String,
+        line: usize,
+        col: i64
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
