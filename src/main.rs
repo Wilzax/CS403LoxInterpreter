@@ -2,15 +2,13 @@ mod scanner;
 mod expr;
 mod parser;
 mod interpreter;
-mod generateAST;
-mod helper;
 use std::env;
 use std::fs::File;
 
 fn main() {
     println!("Hello, world!");
-    scanner::run("/*goodbye*/ world 73.23 21 and or ()) /".to_string());
-    
+    scanner::run("((3 * 8) != (6 * 4))".to_string());
+
     let args: Vec<String> = env::args().collect();
     println!("Detected {} main arguments", args.len());
     if args.len() < 2 {

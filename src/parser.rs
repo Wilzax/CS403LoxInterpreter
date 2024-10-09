@@ -356,13 +356,13 @@ mod tests{
             Ok(express) =>{
                 if let Expr::Grouping { expression } = express{
                     if let Expr::Binary { left  , operator , right, line: _, col: _ } = *expression{
-                        assert_eq!(*left, Expr::Literal { value: expr::LiteralType::Number(3.0)});
-                        assert_eq!(operator, BinaryOpType::Plus);
-                        assert_eq!(*right, Expr::Literal { value: expr::LiteralType::Number(4.0)});
+                        assert_eq!(*left, Expr::Literal { value: expr::LiteralType::Number(3.0)}, "Error parsing left hand expression");
+                        assert_eq!(operator, BinaryOpType::Plus, "Error parsing operand");
+                        assert_eq!(*right, Expr::Literal { value: expr::LiteralType::Number(4.0)}, "Error parsing right hand expression");
                     }
                 } 
             }
-            Err(err) => assert_eq!(1, 2, "Parser Error In Grouping")
+            Err(err) => panic!("Parser Error In Grouping")
         }
 
     }

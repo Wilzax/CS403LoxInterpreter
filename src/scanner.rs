@@ -6,7 +6,8 @@ use std::fs;
 use std::io::Error;
 use std::str;
 use text_io::read;
-use crate::parser;
+use crate::interpreter::Interpreter;
+use crate::parser::{self, ParserError};
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
@@ -418,10 +419,16 @@ pub(crate) fn run(source: String) ->(){
     let mut scanner: Scanner = Scanner::default();
     let tokens: Vec<Token> = scanner.scan_tokens(source);
     let expr = parser::parse_begin(tokens.clone());
-
-    for token in tokens.clone(){
-        println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
+    match expr{
+        Ok(expr) => {
+            Interpreter::interpret(expr);
+        },
+        Err(err) => println!("Fucked up parse")
     }
+
+    //for token in tokens.clone(){
+    //   println!("{}", String::from_utf8(token.lexeme.to_vec()).unwrap());
+    //}
 }
 
 pub fn print_error(scanner_error: ScannerError) ->(){
