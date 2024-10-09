@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use crate::scanner::TokenType;
 
 #[derive(Debug, Clone, PartialEq)]
