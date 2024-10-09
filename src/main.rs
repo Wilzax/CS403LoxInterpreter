@@ -2,12 +2,13 @@ mod scanner;
 mod expr;
 mod parser;
 mod interpreter;
+mod stmt;
 use std::env;
 use std::fs::File;
 
 fn main() {
     println!("Hello, world!");
-    scanner::run("((3 * 8) != (6 * 4))".to_string());
+    scanner::run("print 3+4;".to_string());
 
     let args: Vec<String> = env::args().collect();
     println!("Detected {} main arguments", args.len());

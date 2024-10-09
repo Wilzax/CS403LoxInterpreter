@@ -418,10 +418,10 @@ pub(crate) fn run_prompt() ->(){
 pub(crate) fn run(source: String) ->(){
     let mut scanner: Scanner = Scanner::default();
     let tokens: Vec<Token> = scanner.scan_tokens(source);
-    let expr = parser::parse_begin(tokens.clone());
-    match expr{
-        Ok(expr) => {
-            Interpreter::interpret(expr);
+    let stmt = parser::parse_begin(tokens.clone());
+    match stmt{
+        Ok(stmt) => {
+            let interp = Interpreter::interpret(stmt);
         },
         Err(err) => println!("Fucked up parse")
     }

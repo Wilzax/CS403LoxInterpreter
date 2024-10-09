@@ -1,11 +1,10 @@
-use std::borrow::Borrow;
-use std::fmt::format;
 use std::ptr::null;
 
 use crate::scanner;
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr::{self, BinaryOpType, UnaryOpType}; //Did not want to type scanner::Token 8000 times
 use crate::expr::Expr;
+use crate::stmt::*;
 use crate::parser;
 
 
@@ -37,7 +36,7 @@ pub fn value_type(value: Value) -> Type{
 pub fn value_to_string(value: Value) -> String{
     match value{
         Value::Number(num) => format!("{}", num),
-        Value::String(str) => format!("'{}'", str),
+        Value::String(str) => format!("{}", str),
         Value::Bool(bool) => format!("{}", bool),
         Value::Nil => format!("nil")
     }
@@ -53,31 +52,59 @@ pub fn type_to_string(in_type: Type) -> String{
 }
 
 pub struct Interpreter{
-    expressions: Vec<Expr>
+    statements: Vec<Stmt>
 }
 
 impl Default for Interpreter{
     fn default() -> Interpreter {
         Interpreter{
-            expressions: Vec::new()
+            statements: Vec::new()
         }
     }
 }
 
 impl Interpreter{
-    pub fn interpret(expression: Expr) -> Result<Value, InterpreterError>{
+    pub fn interpret(statements: Vec<Stmt>) -> Result<(), InterpreterError>{
         let mut interp: Interpreter = Interpreter::default();
-        interp.expressions.push(expression);
-        let val: Result<Value, InterpreterError> = interp.evaluate(interp.expressions[0].clone());
-        match val{
-            Ok(value) => {
-                println!("{}", value_to_string(value.clone()));
-                return Ok(value)
+        for stmt in statements{
+            let execution: Result<(), InterpreterError> = interp.execute(stmt);
+            match execution{
+                Ok(stmt) => (),
+                Err(err) => return Err(err)
             }
-            Err(err) => {
-                println!("{}", err.error_message.clone());
-                return Err(err)
-            }
+        }
+        return Ok(())
+        // let val: Result<Value, InterpreterError> = interp.evaluate(interp.expressions[0].clone());
+        // match val{
+        //     Ok(value) => {
+        //         println!("{}", value_to_string(value.clone()));
+        //         return Ok(value)
+        //     }
+        //     Err(err) => {
+        //         println!("{}", err.error_message.clone());
+        //         return Err(err)
+        //     }
+        // }
+    }
+
+    fn visit_expression_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Expr { expression } = stmt{
+            self.evaluate(*expression);
+            return Ok(());
+        }
+        else{
+            panic!("Unreacheable Expression Error");
+        }
+    }
+
+    fn visit_print_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Print { expression } = stmt{
+            let value = self.evaluate(*expression)?;
+            println!("{}", value_to_string(value));
+            return Ok(());
+        }
+        else{
+            panic!("Unreachable Print Error");
         }
     }
 
@@ -211,6 +238,22 @@ impl Interpreter{
             })    
         }
     }
+
+    fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Expr { expression } = stmt.clone(){
+            return self.visit_expression_stmt(stmt);
+        }
+        else if let Stmt::Print { expression } = stmt.clone(){
+            return self.visit_print_stmt(stmt);
+        }
+        else{
+            return Err(InterpreterError { 
+                error_message: format!("We dont have that statement type yet bud"), 
+                line: 0, 
+                column: 0 
+            })
+        }
+    }
 }
 
 pub struct InterpreterError{
@@ -226,21 +269,21 @@ mod tests{
     use crate::parser::*;
     use crate::expr::*;
 
-    #[test]
-    fn simple_addition(){
-        let expr: Expr = Expr::Grouping { 
-            expression: Box::new(Expr::Binary { 
-                left: Box::new(Expr::Literal { value: expr::LiteralType::Number(3.0)}), 
-                operator: BinaryOpType::Plus, 
-                right: Box::new(Expr::Literal { value: expr::LiteralType::Number(4.0)}), 
-                line: 0, 
-                col: 0 
-            }) 
-        };
-        let val: Result<Value, InterpreterError> = Interpreter::interpret(expr);
-        match val{
-            Ok(val) => assert_eq!("7", value_to_string(val), "Error interpreting 3 + 4"),
-            Err(err) => panic!("Error when interpreting")
-        }
-    }
+    // #[test]
+    // fn simple_addition(){
+    //     let expr: Expr = Expr::Grouping { 
+    //         expression: Box::new(Expr::Binary { 
+    //             left: Box::new(Expr::Literal { value: expr::LiteralType::Number(3.0)}), 
+    //             operator: BinaryOpType::Plus, 
+    //             right: Box::new(Expr::Literal { value: expr::LiteralType::Number(4.0)}), 
+    //             line: 0, 
+    //             col: 0 
+    //         }) 
+    //     };
+    //     let val: Result<Value, InterpreterError> = Interpreter::interpret(expr);
+    //     match val{
+    //         Ok(val) => assert_eq!("7", value_to_string(val), "Error interpreting 3 + 4"),
+    //         Err(err) => panic!("Error when interpreting")
+    //     }
+    // }
 }
