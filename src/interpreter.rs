@@ -328,7 +328,7 @@ impl Interpreter{
 
     fn visit_block_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Block { statements } = stmt{
-            let execute = self.execute_block(statements, Environment::default());
+            let execute = self.execute_block(statements, Environment::new(self.environment.clone()));
             match execute{
                 Ok(exec) => return Ok(()),
                 Err(err) => return Err(err)
