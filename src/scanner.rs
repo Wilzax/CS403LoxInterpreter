@@ -418,6 +418,9 @@ pub(crate) fn run_prompt() ->(){
 pub(crate) fn run(source: String) ->(){
     let mut scanner: Scanner = Scanner::default();
     let tokens: Vec<Token> = scanner.scan_tokens(source);
+    for tok in tokens.clone(){
+        println!("{}", String::from_utf8(tok.lexeme).unwrap());
+    }
     let stmt = parser::parse_begin(tokens.clone());
     match stmt{
         Ok(stmt) => {

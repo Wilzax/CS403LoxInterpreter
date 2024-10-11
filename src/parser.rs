@@ -73,13 +73,14 @@ impl Parser{
     fn var_declaration(&mut self) -> Result<Stmt, ParserError>{
         let name = self.consume(TokenType::Identifier, format!("Expect variable name"))?;
         let init = if self.matches(vec![TokenType::Equal]) {
-            println!("Howdy");
+            //println!("Howdy");
             Some(self.expression()?)
         }
         else{
             None
         };
         self.consume(TokenType::Semicolon, format!("Expect ';' after variable declaration"))?;
+        //println!("{}", String::from_utf8(name.lexeme.clone()).unwrap());
         return Ok(Stmt::Var { name: String::from_utf8(name.lexeme).unwrap(), line: name.line, column: name.column ,initializer: init });
     }
 
@@ -88,7 +89,7 @@ impl Parser{
             return self.print_statement();
         }
         if self.matches(vec![TokenType::LeftBrace]){
-            println!("Kill me");
+            //println!("Kill me");
             let statements: Vec<Stmt> = self.block()?;
             return Ok(Stmt::Block { statements: statements });
         }
@@ -117,7 +118,7 @@ impl Parser{
         let mut statements = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end(){
             statements.push(self.declaration()?);
-            println!("Death please");
+            //println!("Death please");
         }
         self.consume(TokenType::RightBrace, format!("Expect '}}' after block."))?;
         return Ok(statements);
@@ -125,13 +126,13 @@ impl Parser{
 
     fn assignment(&mut self) -> Result<Expr, ParserError>{
         let expr: Expr = self.equality()?;
-        println!("Howdy23");
-        println!("{}", self.peek().column);
+        //println!("Howdy23");
+        //println!("{}", self.peek().column);
         if self.matches(vec![TokenType::Equal]){
-            println!("Howdy222");
+            //println!("Howdy222");
             let equals: Token = self.previous();
             let value: Expr = self.assignment()?;
-            println!("Howdy2");
+            //println!("Howdy2");
             if let Expr::Variable { name, line, col } = expr.clone(){
                 return Ok(Expr::Assign { 
                     name: name, 
@@ -148,7 +149,7 @@ impl Parser{
                 column: equals.column 
             })
         }
-        println!("Freak off");
+        //println!("Freak off");
         return Ok(expr);    
     }
 
@@ -291,8 +292,10 @@ impl Parser{
             }
         }
         if self.matches(vec![TokenType::Identifier]){
+            //println!("IN HERE");
             match self.previous().literal{
                 Some(Literal::Identifier(str)) => {
+                    //println!("YUP");
                     return Ok(Expr::Variable { 
                         name: str.clone(), 
                         line: self.previous().line, 

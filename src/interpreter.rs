@@ -76,6 +76,7 @@ impl Interpreter{
 
     pub fn interpret(statements: Vec<Stmt>) -> Result<(), InterpreterError>{
         let mut interp: Interpreter = Interpreter::new(statements.clone());
+        //println!("We interpreting");
         for stmt in statements{
             let execution: Result<(), InterpreterError> = interp.execute(stmt);
             match execution{
@@ -268,6 +269,12 @@ impl Interpreter{
         else if let Expr::Literal { value } = expr{
             return Ok(self.visit_literal_expr(value));
         }
+        else if let Expr::Assign { name: _ , line: _, column: _, value: _ } = expr{
+            return self.visit_assign_expr(expr);
+        }
+        else if let Expr::Variable { name: _ , line: _ , col: _ } = expr{
+            return self.visit_variable_expr(expr);
+        }
         else{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
@@ -279,12 +286,21 @@ impl Interpreter{
 
     fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression } = stmt.clone(){
+            //println!("Aw shucks");
             return Ok(self.visit_expression_stmt(stmt)?);
         }
         else if let Stmt::Print { expression } = stmt.clone(){
+            //println!("Yeppers");
             return Ok(self.visit_print_stmt(stmt)?);
         }
+        else if let Stmt::Var { name, line, column, initializer } = stmt.clone(){
+            return Ok(self.visit_var_stmt(stmt)?);
+        }
+        else if let Stmt::Block { statements: _ } = stmt{
+            return Ok(self.visit_block_stmt(stmt)?);
+        }
         else{
+            //println!("Kys");
             return Err(InterpreterError { 
                 error_message: format!("We dont have that statement type yet bud"), 
                 line: 0, 
