@@ -132,8 +132,11 @@ impl Interpreter{
     fn visit_assign_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Assign { name, line, column, value } = expr{
             let val: Value = self.evaluate(*value)?;
-            self.environment.assign(name, line, column, &val.clone())?;
-            return Ok(val);
+            let expression = self.environment.assign(name, line, column, &val.clone());
+            match expression{
+                Ok(ex) => return Ok(val),
+                Err(err) => Err(err)
+            }
         }
         else{
             panic!("Unreachable assignment error");
@@ -270,10 +273,10 @@ impl Interpreter{
             return Ok(self.visit_literal_expr(value));
         }
         else if let Expr::Assign { name: _ , line: _, column: _, value: _ } = expr{
-            return self.visit_assign_expr(expr);
+            return Ok(self.visit_assign_expr(expr))?;
         }
         else if let Expr::Variable { name: _ , line: _ , col: _ } = expr{
-            return self.visit_variable_expr(expr);
+            return Ok(self.visit_variable_expr(expr))?;
         }
         else{
             return Err(InterpreterError { 
@@ -291,13 +294,13 @@ impl Interpreter{
         }
         else if let Stmt::Print { expression } = stmt.clone(){
             //println!("Yeppers");
-            return Ok(self.visit_print_stmt(stmt)?);
+            return Ok(self.visit_print_stmt(stmt))?;
         }
         else if let Stmt::Var { name, line, column, initializer } = stmt.clone(){
-            return Ok(self.visit_var_stmt(stmt)?);
+            return Ok(self.visit_var_stmt(stmt))?;
         }
         else if let Stmt::Block { statements: _ } = stmt{
-            return Ok(self.visit_block_stmt(stmt)?);
+            return Ok(self.visit_block_stmt(stmt))?;
         }
         else{
             //println!("Kys");
@@ -350,6 +353,10 @@ impl InterpreterError{
             line: line,
             column: column
         }
+    }
+
+    pub fn return_error(&self) -> String{
+        return self.error_message.clone();
     }
 }
 

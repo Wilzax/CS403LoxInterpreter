@@ -84,7 +84,9 @@ impl Environment{
     }
 
     pub fn assign(&mut self, name: String, line: usize, col: i64, val: &Value) -> Result<(), InterpreterError>{
+        //println!("HERE");
         if self.values.contains_key(&name){
+            //println!("NOPE");
             self.define(name, line, col, Some(val.clone()));
             return Ok(())
         }

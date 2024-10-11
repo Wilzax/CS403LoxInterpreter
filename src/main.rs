@@ -9,7 +9,7 @@ use std::fs::File;
 
 fn main() {
     println!("");
-    scanner::run("var hi = \"Tester\";\n{var hi = 3 * 12;\nprint hi;\n hi = \"Bro\";\nprint hi;}\nprint hi;".to_string());
+    scanner::run("var hi = \"Tester\";\n{hi = 3 * 12;\nprint hi;\n hi = \"Bro\";\nprint hi;}\nprint hi;".to_string());
 
     let args: Vec<String> = args().collect();
     println!("Detected {} main arguments", args.len());
