@@ -1,4 +1,4 @@
-use crate::scanner::TokenType;
+use crate::scanner::{Token, TokenType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -25,10 +25,16 @@ pub enum Expr {
         name: String,
         line: usize,
         col: i64
+    },
+    Assign{
+        name: String,
+        line: usize,
+        column: i64,
+        value: Box<Expr>
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum UnaryOpType{
     Minus,
     Bang,
@@ -45,7 +51,7 @@ impl UnaryOpType{
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BinaryOpType{
     Less,
     LessEqual,
@@ -85,4 +91,5 @@ pub enum LiteralType{
     False,
     Nil
 }
+
 

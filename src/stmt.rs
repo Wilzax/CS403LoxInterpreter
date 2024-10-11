@@ -11,6 +11,11 @@ pub enum Stmt {
     },
     Var{
         name: String,
+        line: usize,
+        column: i64,
         initializer: Option<Expr>
+    },
+    Block{
+        statements: Vec<Stmt>
     }
 }

@@ -1,5 +1,6 @@
-use std::ptr::null;
-
+use std::collections::HashMap;
+use std::env;
+use crate::environment::*;
 use crate::scanner;
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr::{self, BinaryOpType, UnaryOpType}; //Did not want to type scanner::Token 8000 times
@@ -52,20 +53,29 @@ pub fn type_to_string(in_type: Type) -> String{
 }
 
 pub struct Interpreter{
-    statements: Vec<Stmt>
+    statements: Vec<Stmt>,
+    environment: Environment
 }
 
 impl Default for Interpreter{
     fn default() -> Interpreter {
         Interpreter{
-            statements: Vec::new()
+            statements: Vec::new(),
+            environment: Environment::default()
         }
     }
 }
 
 impl Interpreter{
+    pub fn new(statements: Vec<Stmt>) -> Self{
+        Interpreter{
+            statements: statements,
+            environment: Environment::default()
+        }
+    }
+
     pub fn interpret(statements: Vec<Stmt>) -> Result<(), InterpreterError>{
-        let mut interp: Interpreter = Interpreter::default();
+        let mut interp: Interpreter = Interpreter::new(statements.clone());
         for stmt in statements{
             let execution: Result<(), InterpreterError> = interp.execute(stmt);
             match execution{
@@ -74,22 +84,11 @@ impl Interpreter{
             }
         }
         return Ok(())
-        // let val: Result<Value, InterpreterError> = interp.evaluate(interp.expressions[0].clone());
-        // match val{
-        //     Ok(value) => {
-        //         println!("{}", value_to_string(value.clone()));
-        //         return Ok(value)
-        //     }
-        //     Err(err) => {
-        //         println!("{}", err.error_message.clone());
-        //         return Err(err)
-        //     }
-        // }
     }
 
     fn visit_expression_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression } = stmt{
-            self.evaluate(*expression);
+            self.evaluate(*expression)?;
             return Ok(());
         }
         else{
@@ -105,6 +104,38 @@ impl Interpreter{
         }
         else{
             panic!("Unreachable Print Error");
+        }
+    }
+
+    fn visit_var_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Var { name, line, column, initializer } = stmt{
+            let mut val: Value = Value::Nil;
+            let mut opt: Option<Value> = None;
+            if initializer.is_some(){
+                val = self.evaluate(initializer.unwrap())?;
+            }
+            if val == Value::Nil{
+                self.environment.define(name, line, column, opt);
+            }
+            else{
+                opt.insert(val);
+                self.environment.define(name, line, column, opt);
+            }
+            return Ok(())
+        }
+        else{
+            panic!("Unreachable Var Error")
+        }
+    }
+
+    fn visit_assign_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Assign { name, line, column, value } = expr{
+            let val: Value = self.evaluate(*value)?;
+            self.environment.assign(name, line, column, &val.clone())?;
+            return Ok(val);
+        }
+        else{
+            panic!("Unreachable assignment error");
         }
     }
 
@@ -199,6 +230,13 @@ impl Interpreter{
         }
     }
 
+    fn visit_variable_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Variable { name , line: _ , col: _ } = expr.clone(){
+            return self.environment.get(&expr);
+        }
+        panic!("Unreachable Variable Error");
+    }
+
     fn is_truthy(val: Value) -> bool{
         match val{
             Value::Nil => false,
@@ -241,10 +279,10 @@ impl Interpreter{
 
     fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression } = stmt.clone(){
-            return self.visit_expression_stmt(stmt);
+            return Ok(self.visit_expression_stmt(stmt)?);
         }
         else if let Stmt::Print { expression } = stmt.clone(){
-            return self.visit_print_stmt(stmt);
+            return Ok(self.visit_print_stmt(stmt)?);
         }
         else{
             return Err(InterpreterError { 
@@ -254,12 +292,49 @@ impl Interpreter{
             })
         }
     }
+
+    fn execute_block(&mut self, statements: Vec<Stmt>, environment: Environment) -> Result<(), InterpreterError>{
+        let previous: Environment = self.environment.clone();
+        self.environment = environment;
+        for stmt in statements{
+            let execute: Result<(), InterpreterError> = self.execute(stmt);
+            match execute{
+                Ok(void) => (),
+                Err(err) => return Err(err)
+            }
+        }
+        self.environment = previous;
+        return Ok(());
+    }
+
+    fn visit_block_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Block { statements } = stmt{
+            let execute = self.execute_block(statements, Environment::default());
+            match execute{
+                Ok(exec) => return Ok(()),
+                Err(err) => return Err(err)
+            }
+        }
+        else{
+            panic!("Unreachable block error");
+        }
+    }
 }
 
 pub struct InterpreterError{
     error_message: String,
     line: usize,
     column: i64
+}
+
+impl InterpreterError{
+    pub fn new(error_message: String, line: usize, column: i64) -> Self{
+        InterpreterError {
+            error_message: error_message,
+            line: line,
+            column: column
+        }
+    }
 }
 
 #[cfg(test)]

@@ -3,14 +3,15 @@ mod expr;
 mod parser;
 mod interpreter;
 mod stmt;
-use std::env;
+mod environment;
+use std::env::args;
 use std::fs::File;
 
 fn main() {
-    println!("Hello, world!");
-    scanner::run("var heyop0 = 12;".to_string());
+    println!("");
+    scanner::run("var hi = 12;\n".to_string());
 
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = args().collect();
     println!("Detected {} main arguments", args.len());
     if args.len() < 2 {
         println!("No file supplied, starting in interactive mode...");

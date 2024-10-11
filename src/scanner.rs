@@ -423,7 +423,7 @@ pub(crate) fn run(source: String) ->(){
         Ok(stmt) => {
             let interp = Interpreter::interpret(stmt);
         },
-        Err(err) => println!("Fucked up parse")
+        Err(err) => println!("{}\n\n\n", err.return_error())
     }
 
     //for token in tokens.clone(){

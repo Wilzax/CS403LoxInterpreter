@@ -28,12 +28,17 @@ declaration    → varDecl
                | statement ;
 
 statement      → exprStmt
-               | printStmt ;
+               | printStmt
+               | block ;
+
+block          → "{" declaration* "}" ;
 
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
-expression     → equality ;
+expression     → assignment ;
+assignment     → IDENTIFIER "=" assignment
+               | equality ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -68,18 +73,24 @@ impl Parser{
     fn var_declaration(&mut self) -> Result<Stmt, ParserError>{
         let name = self.consume(TokenType::Identifier, format!("Expect variable name"))?;
         let init = if self.matches(vec![TokenType::Equal]) {
+            println!("Howdy");
             Some(self.expression()?)
         }
         else{
             None
         };
         self.consume(TokenType::Semicolon, format!("Expect ';' after variable declaration"))?;
-        return Ok(Stmt::Var { name: String::from_utf8(name.lexeme).unwrap(), initializer: init });
+        return Ok(Stmt::Var { name: String::from_utf8(name.lexeme).unwrap(), line: name.line, column: name.column ,initializer: init });
     }
 
     fn statement(&mut self) -> Result<Stmt, ParserError>{
         if self.matches(vec![TokenType::Print]){
             return self.print_statement();
+        }
+        if self.matches(vec![TokenType::LeftBrace]){
+            println!("Kill me");
+            let statements: Vec<Stmt> = self.block()?;
+            return Ok(Stmt::Block { statements: statements });
         }
         return self.expression_statement();
     }
@@ -102,8 +113,47 @@ impl Parser{
         }
     }
 
+    fn block(&mut self) -> Result<Vec<Stmt>, ParserError>{
+        let mut statements = Vec::new();
+        while !self.check(TokenType::RightBrace) && !self.is_at_end(){
+            statements.push(self.declaration()?);
+            println!("Death please");
+        }
+        self.consume(TokenType::RightBrace, format!("Expect '}}' after block."))?;
+        return Ok(statements);
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParserError>{
+        let expr: Expr = self.equality()?;
+        println!("Howdy23");
+        println!("{}", self.peek().column);
+        if self.matches(vec![TokenType::Equal]){
+            println!("Howdy222");
+            let equals: Token = self.previous();
+            let value: Expr = self.assignment()?;
+            println!("Howdy2");
+            if let Expr::Variable { name, line, col } = expr.clone(){
+                return Ok(Expr::Assign { 
+                    name: name, 
+                    line: line, 
+                    column: col, 
+                    value: Box::new(value) 
+                })
+            }
+            return Err(ParserError { 
+                message: format!("Invalid assignment target at line: {}, column: {}",
+                equals.line, equals.column), 
+                token_type: equals.token_type, 
+                line: equals.line, 
+                column: equals.column 
+            })
+        }
+        println!("Freak off");
+        return Ok(expr);    
+    }
+
     fn expression(&mut self) -> Result<Expr, ParserError>{
-            return self.equality();
+            return self.assignment();
     }
 
     fn equality(&mut self) -> Result<Expr, ParserError>{
@@ -208,7 +258,9 @@ impl Parser{
                     return Ok(Expr::Literal { value: expr::LiteralType::Number(num) })
                 }
                 Some(_) => panic!("Internal parser error when parsing number"),
-                None => return Err(ParserError::MissingLiteralWhenParsingNumber { 
+                None => return Err(ParserError { 
+                    message: format!("Missing literal when parsing number at line: {}, column: {}",
+                    self.previous().line, self.previous().column),
                     token_type: TokenType::Number, 
                     line: self.previous().line, 
                     column: self.previous().column 
@@ -221,7 +273,9 @@ impl Parser{
                     return Ok(Expr::Literal { value: expr::LiteralType::String(str) })
                 }
                 Some(_) => panic!("Internal parser error when parsing string"),
-                None => return Err(ParserError::MissingLiteralWhenParsingString { 
+                None => return Err(ParserError{ 
+                    message: format!("Missing literal when parsing string at line: {}, column: {}",
+                    self.previous().line, self.previous().column),
                     token_type: TokenType::String, 
                     line: self.previous().line, 
                     column: self.previous().column 
@@ -249,11 +303,12 @@ impl Parser{
                 None => panic!("Found no literal when parsing Identifier")
             }
         }
-        Err(ParserError::ExpectedExpression { 
+        Err(ParserError {
+            message: format!("Expected expression at line: {}, column{}",
+            self.peek().line, self.peek().column), 
             token_type: self.peek().token_type, 
             line: self.peek().line, 
-            column: self.peek().column ,
-            error_message: "Expected Expression at line: ".to_string() + &self.peek().line.to_string() + ", column: " + &self.peek().column.to_string(),
+            column: self.peek().column 
         })
     }
 
@@ -262,12 +317,12 @@ impl Parser{
             return Ok(self.advance())
         }
         else{
-            return Err(ParserError::MismatchedTokens { 
-                expected: token_type, 
-                found: self.peek().token_type, 
-                error_line: self.peek().line,
-                error_column: self.peek().column,
-                error_message:  message + "Error located at line: " + &self.peek().line.to_string() + ", column: " + &self.peek().column.to_string(),
+            return Err(ParserError{
+                message: format!("Mismatched tokens found at line: {}, column: {}",
+                self.peek().line, self.peek().column), 
+                token_type: token_type,
+                line: self.peek().line,
+                column: self.peek().column
             })
         }
     }
@@ -284,7 +339,9 @@ impl Parser{
             })
         }
         else{
-            Err(ParserError::InvalidBinaryOperator { 
+            Err(ParserError {
+                message: format!("Invalid Binary Operator at line: {}, column {}",
+                op_token.line, op_token.column), 
                 token_type: op_token.token_type, 
                 line: op_token.line, 
                 column: op_token.column 
@@ -303,7 +360,9 @@ impl Parser{
             })
         }
         else{
-            Err(ParserError::InvalidUnaryOperator { 
+            Err(ParserError {
+                message: format!("Invalid Unary Operator at line: {}, column {}",
+                op_token.line, op_token.column), 
                 token_type: op_token.token_type, 
                 line: op_token.line, 
                 column: op_token.column 
@@ -369,40 +428,17 @@ impl Parser{
     }
 }
 
-pub enum ParserError{
-    InvalidBinaryOperator{
-        token_type: TokenType,
-        line: usize,
-        column: i64,
-    },
-    InvalidUnaryOperator{
-        token_type: TokenType,
-        line: usize,
-        column: i64,
-    },
-    MissingLiteralWhenParsingNumber{
-        token_type: TokenType,
-        line: usize,
-        column: i64,
-    },
-    MissingLiteralWhenParsingString{
-        token_type: TokenType,
-        line: usize,
-        column: i64,
-    },
-    ExpectedExpression{
-        token_type: TokenType,
-        line: usize,
-        column: i64,
-        error_message: String,
-    },
-    MismatchedTokens{
-        expected: TokenType,
-        found: TokenType,
-        error_line: usize,
-        error_column: i64,
-        error_message: String,
-    },
+pub struct ParserError{
+    message: String,
+    token_type: TokenType,
+    line: usize,
+    column: i64
+}
+
+impl ParserError{
+    pub fn return_error(&self) -> String{
+        return self.message.clone()
+    }
 }
 
 pub fn parse_begin(in_tokens: Vec<Token>) -> Result<Vec<Stmt>, ParserError>{
