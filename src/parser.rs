@@ -1,3 +1,5 @@
+use std::string::ParseError;
+
 use crate::interpreter::Value;
 use crate::scanner::{self, Literal};
 use crate::scanner::{Scanner, Token, TokenType};
@@ -28,12 +30,14 @@ declaration    → varDecl
                | statement ;
 
 statement      → exprStmt
+               | ifStmt
                | printStmt
                | block ;
 
 block          → "{" declaration* "}" ;
 
 exprStmt       → expression ";" ;
+ifStmt         → "if" "(" expression ")" statement ( "else" statement )? ;     
 printStmt      → "print" expression ";" ;
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 expression     → assignment ;
@@ -48,6 +52,8 @@ unary          → ( "!" | "-" ) unary
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" 
                | IDENTIFIER ;
+
+
 */
 
 impl Parser{
@@ -93,6 +99,14 @@ impl Parser{
             let statements: Vec<Stmt> = self.block()?;
             return Ok(Stmt::Block { statements: statements });
         }
+        /* This will not compile and I am too stupid to understand why.
+        if self.matches(vec![TokenType::If]){
+            return self.if_statement();
+            
+            println!("YOU HAVE FOUND THE IF!");
+
+        }
+        */
         return self.expression_statement();
     }
 
@@ -114,6 +128,26 @@ impl Parser{
         }
     }
 
+    /* This will not compile and I am too stupid to understand why.
+    fn if_statement(&mut self) -> Result<Stmt, ParseError>{
+        let start_condition: Result<Token, ParserError> = self.consume(TokenType::LeftParen, format!("Expect '(' after 'if'"));
+        let condition: Expr = self.expression()?;
+        let end_condition: Result<Token, ParserError> = self.consume(TokenType::RightParen, format!("Expect ')' after conditional statement"));
+
+        
+        let then_branch: Stmt = self.statement()?;
+        let else_branch: Stmt;
+        if self.matches(vec![TokenType::Else]){
+            else_branch = self.statement()?;
+        }
+        
+
+        match correct_end{
+            Ok(token) => return Ok(Stmt::Expr {Stmt:: Box::new(value) }),
+            Err(err) => return Err(err)
+        }
+    }
+    */
     fn block(&mut self) -> Result<Vec<Stmt>, ParserError>{
         let mut statements = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end(){
