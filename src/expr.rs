@@ -31,7 +31,12 @@ pub enum Expr {
         line: usize,
         column: i64,
         value: Box<Expr>
-    }
+    },
+    Logical{
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

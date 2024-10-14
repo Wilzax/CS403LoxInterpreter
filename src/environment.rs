@@ -43,6 +43,10 @@ impl Environment{
         }
     }
 
+    pub fn return_enclosing(&self) -> Option<Box<Environment>>{
+        return self.enclosing.clone();
+    }
+
     pub fn define(&mut self, name: String, line: usize, col: i64, possible_val: Option<Value>) -> (){
         self.values.insert(
             name,
@@ -87,11 +91,11 @@ impl Environment{
         //println!("HERE");
         if self.values.contains_key(&name){
             //println!("NOPE");
-            self.define(name, line, col, Some(val.clone()));
-            return Ok(())
+            self.define(name.clone(), line, col, Some(val.clone()));
+            return Ok(());
         }
         match &mut self.enclosing {
-            Some(enclosing) => enclosing.assign(name, line, col, val),
+            Some(enclosing) => return enclosing.assign(name.clone(), line, col, val),
             None => return Err(InterpreterError::new(
       format!("Attempting to assign undefined variable '{}' at line: {}, column: {}",
                     name, line, col), 

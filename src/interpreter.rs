@@ -97,6 +97,35 @@ impl Interpreter{
         }
     }
 
+    fn visit_if_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::If { condition, then_branch, else_branch } = stmt{
+            if Interpreter::is_truthy(self.evaluate(*condition)?){
+                self.execute(*then_branch)?;
+            }
+            else{
+                if else_branch.is_some(){
+                    self.execute(*else_branch.unwrap())?;
+                }
+            }
+            return Ok(());
+        }
+        else{
+            panic!("Unreachable If Expression Error");
+        }
+    }
+
+    fn visit_while_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::While { condition, body } = stmt{
+            while Interpreter::is_truthy(self.evaluate(*condition.clone())?){
+                self.execute(*body.clone())?;
+            }
+            return Ok(());
+        }
+        else{
+            panic!("Unreachable While Error");
+        }
+    }
+
     fn visit_print_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Print { expression } = stmt{
             let value = self.evaluate(*expression)?;
@@ -241,6 +270,30 @@ impl Interpreter{
         panic!("Unreachable Variable Error");
     }
 
+    fn visit_logical_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Logical { left, operator, right } = expr{
+            let left_val = self.evaluate(*left)?;
+            match operator.return_token_type(){
+                TokenType::Or => {
+                    match Interpreter::is_truthy(left_val.clone()){
+                        true => return Ok(left_val),
+                        false => (),
+                    }
+                }
+                _ => {
+                    match Interpreter::is_truthy(left_val.clone()){
+                        false => return Ok(left_val),
+                        true => (),
+                    }
+                }
+            }
+            return Ok(self.evaluate(*right)?);
+        }
+        else{
+            panic!("Unreachable Logical Error");
+        }
+    }
+
     fn is_truthy(val: Value) -> bool{
         match val{
             Value::Nil => false,
@@ -278,6 +331,9 @@ impl Interpreter{
         else if let Expr::Variable { name: _ , line: _ , col: _ } = expr{
             return Ok(self.visit_variable_expr(expr))?;
         }
+        else if let Expr::Logical { left: _ , operator: _ , right: _ } = expr{
+            return Ok(self.visit_logical_expr(expr))?;
+        }
         else{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
@@ -288,19 +344,25 @@ impl Interpreter{
     }
 
     fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
-        if let Stmt::Expr { expression } = stmt.clone(){
+        if let Stmt::Expr { expression: _ } = stmt{
             //println!("Aw shucks");
             return Ok(self.visit_expression_stmt(stmt)?);
         }
-        else if let Stmt::Print { expression } = stmt.clone(){
+        else if let Stmt::Print { expression: _ } = stmt{
             //println!("Yeppers");
             return Ok(self.visit_print_stmt(stmt))?;
         }
-        else if let Stmt::Var { name, line, column, initializer } = stmt.clone(){
+        else if let Stmt::Var { name: _, line: _ , column: _ , initializer: _ } = stmt{
             return Ok(self.visit_var_stmt(stmt))?;
         }
         else if let Stmt::Block { statements: _ } = stmt{
             return Ok(self.visit_block_stmt(stmt))?;
+        }
+        else if let Stmt::If { condition: _ , then_branch: _ , else_branch: _ } = stmt{
+            return Ok(self.visit_if_stmt(stmt))?;
+        }
+        else if let Stmt::While { condition: _ , body: _ } = stmt{
+            return Ok(self.visit_while_stmt(stmt))?;
         }
         else{
             //println!("Kys");
@@ -312,9 +374,8 @@ impl Interpreter{
         }
     }
 
-    fn execute_block(&mut self, statements: Vec<Stmt>, environment: Environment) -> Result<(), InterpreterError>{
-        let previous: Environment = self.environment.clone();
-        self.environment = environment;
+    fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<(), InterpreterError>{
+        self.environment = Environment::new(self.environment.clone());
         for stmt in statements{
             let execute: Result<(), InterpreterError> = self.execute(stmt);
             match execute{
@@ -322,13 +383,18 @@ impl Interpreter{
                 Err(err) => return Err(err)
             }
         }
-        self.environment = previous;
+        if let Some(enclosing) = self.environment.return_enclosing(){
+            self.environment = *enclosing;
+        }
+        else{
+            panic!("Unreachable");
+        }
         return Ok(());
     }
 
     fn visit_block_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Block { statements } = stmt{
-            let execute = self.execute_block(statements, Environment::new(self.environment.clone()));
+            let execute = self.execute_block(statements);
             match execute{
                 Ok(exec) => return Ok(()),
                 Err(err) => return Err(err)

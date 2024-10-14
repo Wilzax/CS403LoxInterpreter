@@ -74,6 +74,12 @@ pub struct Token {
     pub column: i64
 }
 
+impl Token {
+    pub fn return_token_type(&self) -> TokenType{
+        return self.token_type.clone();
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Identifier(String),

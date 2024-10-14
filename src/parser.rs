@@ -30,9 +30,17 @@ declaration    → varDecl
                | statement ;
 
 statement      → exprStmt
+               | forStmt
                | ifStmt
                | printStmt
+               | whileStmt
                | block ;
+
+forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+                 expression? ";"
+                 expression? ")" statement ;
+
+whileStmt      → "while" "(" expression ")" statement ;
 
 block          → "{" declaration* "}" ;
 
@@ -42,7 +50,9 @@ printStmt      → "print" expression ";" ;
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 expression     → assignment ;
 assignment     → IDENTIFIER "=" assignment
-               | equality ;
+               | logic_or ;
+logic_or       → logic_and ( "or" logic_and )* ;
+logic_and      → equality ( "and" equality )* ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -99,15 +109,52 @@ impl Parser{
             let statements: Vec<Stmt> = self.block()?;
             return Ok(Stmt::Block { statements: statements });
         }
-        /* This will not compile and I am too stupid to understand why.
         if self.matches(vec![TokenType::If]){
             return self.if_statement();
-            
-            println!("YOU HAVE FOUND THE IF!");
-
         }
-        */
+        if self.matches(vec![TokenType::While]){
+            return self.while_statement();
+        }
+        if self.matches(vec![TokenType::For]){
+            return self.for_statement();
+        }
         return self.expression_statement();
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, ParserError>{
+        let start_condition: Result<Token, ParserError> = self.consume(TokenType::LeftParen, format!("Expect '(' after 'for'"));
+        let initializer: Option<Stmt>;
+        if self.matches(vec![TokenType::Semicolon]){
+            initializer = None;
+        }
+        else if self.matches(vec![TokenType::Var]){
+            initializer = Some(self.var_declaration()?);
+        }
+        else{
+            initializer = Some(self.expression_statement()?);
+        }
+        let mut condition: Option<Expr> = None;
+        if !self.check(TokenType::Semicolon){
+            condition = Some(self.expression()?);
+        }
+        let semi = self.consume(TokenType::Semicolon, format!("Expect ';' after loop condition"));
+        let mut increment: Option<Expr> = None;
+        if !self.check(TokenType::RightParen){
+            increment = Some(self.expression()?);
+        }
+        let semi = self.consume(TokenType::RightParen, format!("Expect ')' after for clauses"));
+        let mut body: Stmt = self.statement()?;
+        if increment != None{
+            body = Stmt::Block { statements: vec![body, Stmt::Expr { expression: Box::new(increment.unwrap()) }] };
+        }
+        if condition == None{
+            condition = Some(Expr::Literal { value: expr::LiteralType::True });
+        }
+        body = Stmt::While { condition: Box::new(condition.unwrap()), body: Box::new(body) };
+        if initializer != None{
+            body = Stmt::Block { statements: vec![initializer.unwrap(), body] };
+        }
+        return Ok(body);
     }
 
     fn print_statement(&mut self) -> Result<Stmt, ParserError>{
@@ -128,26 +175,28 @@ impl Parser{
         }
     }
 
-    /* This will not compile and I am too stupid to understand why.
-    fn if_statement(&mut self) -> Result<Stmt, ParseError>{
+    fn if_statement(&mut self) -> Result<Stmt, ParserError>{
         let start_condition: Result<Token, ParserError> = self.consume(TokenType::LeftParen, format!("Expect '(' after 'if'"));
         let condition: Expr = self.expression()?;
         let end_condition: Result<Token, ParserError> = self.consume(TokenType::RightParen, format!("Expect ')' after conditional statement"));
-
-        
         let then_branch: Stmt = self.statement()?;
-        let else_branch: Stmt;
+        let else_branch:Option<Box<Stmt>>;
         if self.matches(vec![TokenType::Else]){
-            else_branch = self.statement()?;
+            else_branch = Some(Box::new(self.statement()?));
         }
-        
-
-        match correct_end{
-            Ok(token) => return Ok(Stmt::Expr {Stmt:: Box::new(value) }),
-            Err(err) => return Err(err)
-        }
+        else{
+            else_branch = None;
+        };
+        return Ok(Stmt::If { condition: Box::new(condition), then_branch: Box::new(then_branch), else_branch: else_branch })
     }
-    */
+
+    fn while_statement(&mut self) -> Result<Stmt, ParserError>{
+        let begin = self.consume(TokenType::LeftParen, format!("Expect '(' after 'while'."));
+        let condition: Expr = self.expression()?;
+        let end = self.consume(TokenType::LeftParen, format!("Expect ')' after condition."));
+        let body = self.statement()?;
+        return Ok(Stmt::While { condition: Box::new(condition), body: Box::new(body) });
+    }
     fn block(&mut self) -> Result<Vec<Stmt>, ParserError>{
         let mut statements = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end(){
@@ -159,7 +208,7 @@ impl Parser{
     }
 
     fn assignment(&mut self) -> Result<Expr, ParserError>{
-        let expr: Expr = self.equality()?;
+        let expr: Expr = self.or()?;
         //println!("Howdy23");
         //println!("{}", self.peek().column);
         if self.matches(vec![TokenType::Equal]){
@@ -185,6 +234,34 @@ impl Parser{
         }
         //println!("Freak off");
         return Ok(expr);    
+    }
+
+    fn or(&mut self) -> Result<Expr, ParserError>{
+        let mut expr: Expr = self.and()?;
+        while self.matches(vec![TokenType::Or]){
+            let operator: Token = self.previous();
+            let right: Expr = self.equality()?;
+            expr = Expr::Logical { 
+                left: Box::new(expr), 
+                operator: operator,
+                right: Box::new(right) 
+            }
+        }
+        return Ok(expr);
+    }
+
+    fn and(&mut self) -> Result<Expr, ParserError>{
+        let mut expr: Expr = self.equality()?;
+        while self.matches(vec![TokenType::And]){
+            let operator: Token = self.previous();
+            let right: Expr = self.equality()?;
+            expr = Expr::Logical { 
+                left: Box::new(expr), 
+                operator: operator,
+                right: Box::new(right) 
+            }
+        }
+        return Ok(expr);
     }
 
     fn expression(&mut self) -> Result<Expr, ParserError>{
