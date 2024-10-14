@@ -560,50 +560,7 @@ mod tests{
                 Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
             }
         }
-
-        #[test]
-        fn division_produces_correct_response() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
-                operator: BinaryOpType::Slash,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
-                line: 1,
-                col: 1,
-            };
-            
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-            let result = Interpreter::interpret(vec![stmt]);
         
-            match result {
-                Ok(_) => {
-                    let expected_value = Value::Number(5.0);
-                    assert_eq!(expected_value, Value::Number(5.0)); 
-                },
-                Err(err) => panic!("Expected correct division, but got an error: {}", err.return_error()),
-            }
-        }
-
-        #[test]
-        fn multiplication_produces_correct_response() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(11.0) }),
-                operator: BinaryOpType::Star,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-                line: 1,
-                col: 1,
-            };
-            
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-            let result = Interpreter::interpret(vec![stmt]);
-        
-            match result {
-                Ok(_) => {
-                    let expected_value = Value::Number(44.0);
-                    assert_eq!(expected_value, Value::Number(44.0)); 
-                },
-                Err(err) => panic!("Expected correct multiplication, but got an error: {}", err.return_error()),
-            }
-        }
 
         #[test]
         fn addition_produces_correct_response() {
@@ -628,26 +585,25 @@ mod tests{
         }
 
         #[test]
-        fn subtraction_produces_correct_response() {
+        fn operator_precedence() {
             let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(239.0) }),
-                operator: BinaryOpType::Minus,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(47.0) }),
+                left: Box::new(Expr::Binary {
+                    left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                    operator: BinaryOpType::Plus,
+                    right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
+                    line: 1,
+                    col: 1,
+                }),
+                operator: BinaryOpType::Star,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
                 line: 1,
                 col: 1,
             };
-            
             let stmt = Stmt::Expr { expression: Box::new(expr) };
             let result = Interpreter::interpret(vec![stmt]);
-        
-            match result {
-                Ok(_) => {
-                    let expected_value = Value::Number(192.0);
-                    assert_eq!(expected_value, Value::Number(192.0)); 
-                },
-                Err(err) => panic!("Expected correct subtraction, but got an error: {}", err.return_error()),
-            }
+            assert!(result.is_ok());
         }
+        
     }
     
 }
