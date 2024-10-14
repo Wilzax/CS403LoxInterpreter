@@ -433,21 +433,79 @@ mod tests{
     use crate::parser::*;
     use crate::expr::*;
 
-    // #[test]
-    // fn simple_addition(){
-    //     let expr: Expr = Expr::Grouping { 
-    //         expression: Box::new(Expr::Binary { 
-    //             left: Box::new(Expr::Literal { value: expr::LiteralType::Number(3.0)}), 
-    //             operator: BinaryOpType::Plus, 
-    //             right: Box::new(Expr::Literal { value: expr::LiteralType::Number(4.0)}), 
-    //             line: 0, 
-    //             col: 0 
-    //         }) 
-    //     };
-    //     let val: Result<Value, InterpreterError> = Interpreter::interpret(expr);
-    //     match val{
-    //         Ok(val) => assert_eq!("7", value_to_string(val), "Error interpreting 3 + 4"),
-    //         Err(err) => panic!("Error when interpreting")
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::expr::{Expr, LiteralType};
+        use crate::stmt::{Stmt};
+    
+        #[test]
+        fn simple_addition() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                operator: BinaryOpType::Plus,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
+            let result = Interpreter::interpret(vec![stmt]);
+            
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during interpretation"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
+    
+        #[test]
+        fn variable_assignment() {
+            let var_stmt = Stmt::Var {
+                name: "x".to_string(),
+                line: 1,
+                column: 1,
+                initializer: Some(Expr::Literal { value: LiteralType::Number(42.0) }),  
+            };
+            let print_stmt = Stmt::Print {
+                expression: Box::new(Expr::Variable { name: "x".to_string(), line: 1, col: 1 }),
+            };
+            let result = Interpreter::interpret(vec![var_stmt, print_stmt]);
+    
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during variable assignment and printing"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
+    
+        #[test]
+        fn print_statement() {
+            let print_stmt = Stmt::Print {
+                expression: Box::new(Expr::Literal { value: LiteralType::String("Hello, World!".to_string()) }),
+            };
+            let result = Interpreter::interpret(vec![print_stmt]);
+    
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during printing"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
+    
+        #[test]
+        fn division_by_zero() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
+                operator: BinaryOpType::Slash,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
+            let result = Interpreter::interpret(vec![stmt]);
+    
+            match result {
+                Ok(_) => panic!("Expected an error during division by zero"),
+                Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
+            }
+        }
+    }
+    
 }
