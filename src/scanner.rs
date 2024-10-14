@@ -251,7 +251,7 @@ impl Scanner{
                         line: self.line,
                         column: self.column,
                     });
-                }
+                }                
             }
 
 
@@ -587,6 +587,32 @@ mod tests{
 
         assert!(scanner.error.is_some());
         assert_eq!(scanner.error.unwrap().error, "Unclosed block comment");
+    }
+
+    #[test]
+    fn scan_mixed_tokens() {
+        let source = "123 + variable * 4.56".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        let expected_tokens = vec![
+            TokenType::Number, TokenType::Plus,
+            TokenType::Identifier, TokenType::Star,
+            TokenType::Number, TokenType::Eof
+        ];
+
+        let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
+        assert_eq!(expected_tokens, actual_tokens);
+    }      
+
+    #[test]
+    fn scan_empty_source() {
+        let source = "".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+
+        assert_eq!(tokens.len(), 1); 
+        assert_eq!(tokens[0].token_type, TokenType::Eof);
     }
 }
 
