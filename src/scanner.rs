@@ -62,6 +62,7 @@ pub enum TokenType {
     While,
     Lambda,
     Eof,
+    None
 }
 
 

@@ -1,5 +1,3 @@
-use std::string::ParseError;
-
 use crate::interpreter::Value;
 use crate::scanner::{self, Literal};
 use crate::scanner::{Scanner, Token, TokenType};
@@ -26,9 +24,13 @@ impl Default for Parser{
 Current Parser Grammer:
 program        → statement* EOF ;
 
-declaration    → varDecl
+declaration    → funDecl
+               | varDecl
                | statement ;
 
+funDecl        → "fun" function ;
+function       → IDENTIFIER "(" parameters? ")" block ;
+parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 statement      → exprStmt
                | forStmt
                | ifStmt
@@ -57,8 +59,9 @@ equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
 factor         → unary ( ( "/" | "*" ) unary )* ;
-unary          → ( "!" | "-" ) unary
-               | primary ;
+unary          → ( "!" | "-" ) unary | call ;
+call           → primary ( "(" arguments? ")" )* ;
+arguments      → expression ( "," expression )* ;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" 
                | IDENTIFIER ;
@@ -83,7 +86,39 @@ impl Parser{
         if self.matches(vec![TokenType::Var]){
             return self.var_declaration();
         }
+        if self.matches(vec![TokenType::Fun]){
+            return self.function(format!("function"));
+        }
         return self.statement();
+    }
+
+    fn function(&mut self, kind: String) -> Result<Stmt, ParserError>{
+        let name: Token = self.consume(TokenType::Identifier, format!("Expect {} name", kind))?;
+        let mut parameters: Vec<Token> = Vec::new();
+        if !self.check(TokenType::RightParen){
+            loop{
+                if parameters.len() >= 255{
+                    return Err(ParserError { 
+                        message: format!("Cannot have more than 255 parameters"), 
+                        token_type: TokenType::None, 
+                        line: 0, 
+                        column: 0 
+                    })
+                }
+                parameters.push(self.consume(TokenType::Identifier, format!("Expect parameter name"))?);
+                if !self.matches(vec![TokenType::Comma]){
+                    break;
+                }
+            } 
+        }
+        let paren: Token = self.consume(TokenType::RightParen, format!("Expect ')' after parameters"))?;
+        let brace: Token = self.consume(TokenType::LeftBrace, format!("Expect '{{' before {} body", kind))?;
+        let body: Vec<Stmt> = self.block()?;
+        return Ok(Stmt::Function { 
+            name: String::from_utf8(name.lexeme).unwrap(), 
+            parameters: parameters, 
+            body: Box::new(body) 
+        })
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, ParserError>{
@@ -122,7 +157,7 @@ impl Parser{
     }
 
     fn for_statement(&mut self) -> Result<Stmt, ParserError>{
-        let start_condition: Result<Token, ParserError> = self.consume(TokenType::LeftParen, format!("Expect '(' after 'for'"));
+        let start_condition: Token = self.consume(TokenType::LeftParen, format!("Expect '(' after 'for'"))?;
         let initializer: Option<Stmt>;
         if self.matches(vec![TokenType::Semicolon]){
             initializer = None;
@@ -137,12 +172,12 @@ impl Parser{
         if !self.check(TokenType::Semicolon){
             condition = Some(self.expression()?);
         }
-        let semi = self.consume(TokenType::Semicolon, format!("Expect ';' after loop condition"));
+        let semi = self.consume(TokenType::Semicolon, format!("Expect ';' after loop condition"))?;
         let mut increment: Option<Expr> = None;
         if !self.check(TokenType::RightParen){
             increment = Some(self.expression()?);
         }
-        let semi = self.consume(TokenType::RightParen, format!("Expect ')' after for clauses"));
+        let semi = self.consume(TokenType::RightParen, format!("Expect ')' after for clauses"))?;
         let mut body: Stmt = self.statement()?;
         if increment != None{
             body = Stmt::Block { statements: vec![body, Stmt::Expr { expression: Box::new(increment.unwrap()) }] };
@@ -198,7 +233,7 @@ impl Parser{
         return Ok(Stmt::While { condition: Box::new(condition), body: Box::new(body) });
     }
     fn block(&mut self) -> Result<Vec<Stmt>, ParserError>{
-        let mut statements = Vec::new();
+        let mut statements: Vec<Stmt> = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end(){
             statements.push(self.declaration()?);
             //println!("Death please");
@@ -351,7 +386,46 @@ impl Parser{
                 Err(err) => return Err(err),
             }
         }
-        return self.primary();
+        return self.call();
+    }
+
+    fn call(&mut self) -> Result<Expr, ParserError>{
+        let mut expr: Expr = self.primary()?;
+        loop{
+            if self.matches(vec![TokenType::LeftParen]){
+                expr = self.finish_call(expr)?;
+            }
+            else{
+                break;
+            }
+        }
+        return Ok(expr);
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParserError>{
+        let mut arguments: Vec<Expr> = Vec::new();
+        if !self.check(TokenType::RightParen){
+            loop{
+                if arguments.len() >= 255{
+                    return Err(ParserError { 
+                        message: format!("Cannot have more than 255 arguments"), 
+                        token_type: TokenType::None, 
+                        line: 0, 
+                        column: 0 
+                    })
+                }
+                arguments.push(self.expression()?);
+                if !self.matches(vec![TokenType::Comma]){
+                    break;
+                }
+            }
+        }
+        let paren: Token = self.consume(TokenType::RightParen, format!("Expect ')' after arguments"))?;
+        return Ok(Expr::Call { 
+            callee: Box::new(callee), 
+            paren: paren, 
+            arguments: Box::new(arguments) 
+        })
     }
 
     fn primary(&mut self) -> Result<Expr, ParserError>{
@@ -432,8 +506,8 @@ impl Parser{
         }
         else{
             return Err(ParserError{
-                message: format!("Mismatched tokens found at line: {}, column: {}",
-                self.peek().line, self.peek().column), 
+                message: format!("{} at line: {}, column: {}",
+                message, self.peek().line, self.peek().column), 
                 token_type: token_type,
                 line: self.peek().line,
                 column: self.peek().column

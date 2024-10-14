@@ -27,5 +27,9 @@ pub enum Stmt {
         condition: Box<Expr>,
         body: Box<Stmt>
     },
-    
+    Function{
+        name: String,
+        parameters: Vec<Token>,
+        body: Box<Vec<Stmt>>
+    }
 }

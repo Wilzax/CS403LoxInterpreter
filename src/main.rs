@@ -4,6 +4,7 @@ mod parser;
 mod interpreter;
 mod stmt;
 mod environment;
+mod lox_callable;
 use std::env::args;
 use std::fs::File;
 

@@ -6,8 +6,8 @@ use crate::scanner::{Token, TokenType};
 
 #[derive(Debug, Clone)]
 pub struct Environment{
-    values: HashMap<String, (Option<Value>, VarLocation)>,
-    enclosing: Option<Box<Environment>>
+    pub values: HashMap<String, (Option<Value>, VarLocation)>,
+    pub enclosing: Option<Box<Environment>>
 }
 
 impl Default for Environment{
@@ -22,8 +22,8 @@ impl Default for Environment{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VarLocation{
-    line: usize,
-    col: i64
+    pub line: usize,
+    pub col: i64
 }
 
 pub enum LookupResult{
@@ -43,8 +43,25 @@ impl Environment{
         }
     }
 
+    pub fn set_enclosing(&mut self, enclosing: Option<Environment>) -> (){
+        if enclosing.is_some(){
+            self.enclosing = Some(Box::new(enclosing.unwrap()))
+        }
+        else{
+            self.enclosing = None
+        }
+    }
+
+    pub fn set_values(&mut self, values: HashMap<String, (Option<Value>, VarLocation)>) -> (){
+        self.values = values;
+    }
+
     pub fn return_enclosing(&self) -> Option<Box<Environment>>{
         return self.enclosing.clone();
+    }
+
+    pub fn return_values(&self) -> HashMap<String, (Option<Value>, VarLocation)>{
+        return self.values.clone();
     }
 
     pub fn define(&mut self, name: String, line: usize, col: i64, possible_val: Option<Value>) -> (){
@@ -55,6 +72,34 @@ impl Environment{
                 VarLocation{
                     line: line,
                     col: col
+                }
+            )
+        );
+        return ()
+    }
+
+    pub fn define_token(&mut self, token: Token, val: Value) -> (){
+        self.values.insert(
+            String::from_utf8(token.lexeme).unwrap(), 
+            (
+                Some(val),
+                VarLocation{
+                    line: token.line,
+                    col: token.column
+                }
+            )
+        );
+        return ()
+    }
+
+    pub fn define_string(&mut self, name: String, val: Value){
+        self.values.insert(
+            name, 
+            (
+                Some(val),
+                VarLocation{
+                    line: 0,
+                    col: 0
                 }
             )
         );

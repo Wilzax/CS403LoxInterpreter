@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::env;
+use std::fmt::format;
+use std::time::{SystemTime, UNIX_EPOCH};
 use crate::environment::*;
+use crate::lox_callable::*;
 use crate::scanner;
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr::{self, BinaryOpType, UnaryOpType}; //Did not want to type scanner::Token 8000 times
@@ -14,6 +17,8 @@ pub enum Value{
     Number(f64),
     String(String),
     Bool(bool),
+    UserDefined(UserDefined),
+    NativeFunction(NativeFunction),
     Nil,
 }
 
@@ -22,47 +27,88 @@ pub enum Type{
     Number,
     String,
     Bool,
+    UserDefined,
+    NativeFunction,
     Nil
 }
+impl Value{
+    pub fn value_type(value: Value) -> Type{
+        match value{
+            Value::Number(_) => Type::Number,
+            Value::String(_) => Type::String,
+            Value::Bool(_) => Type::Bool,
+            Value::UserDefined(_) => Type::UserDefined,
+            Value::NativeFunction(_) => Type::NativeFunction,
+            Value::Nil => Type::Nil
+            
+        }
+    }
 
-pub fn value_type(value: Value) -> Type{
-    match value{
-        Value::Number(_) => Type::Number,
-        Value::String(_) => Type::String,
-        Value::Bool(_) => Type::Bool,
-        Value::Nil => Type::Nil
+    pub fn value_to_string(value: Value) -> String{
+        match value{
+            Value::Number(num) => format!("{}", num),
+            Value::String(str) => format!("{}", str),
+            Value::Bool(bool) => format!("{}", bool),
+            Value::NativeFunction(nat) => format!("{}", nat.name),
+            Value::UserDefined(user) => format!("{}", user.name),
+            Value::Nil => format!("nil")
+        }
     }
 }
 
-pub fn value_to_string(value: Value) -> String{
-    match value{
-        Value::Number(num) => format!("{}", num),
-        Value::String(str) => format!("{}", str),
-        Value::Bool(bool) => format!("{}", bool),
-        Value::Nil => format!("nil")
-    }
-}
-
-pub fn type_to_string(in_type: Type) -> String{
-    match in_type{
-        Type::Number => format!("Number"),
-        Type::String => format!("String"),
-        Type::Bool => format!("Bool"),
-        Type::Nil => format!("Nil")
+impl Type{
+    pub fn type_to_string(in_type: Type) -> String{
+        match in_type{
+            Type::Number => format!("Number"),
+            Type::String => format!("String"),
+            Type::Bool => format!("Bool"),
+            Type::NativeFunction => format!("Native Function"),
+            Type::UserDefined => format!("User Defined Function"),
+            Type::Nil => format!("Nil")
+        }
     }
 }
 
 pub struct Interpreter{
-    statements: Vec<Stmt>,
-    environment: Environment
+    pub statements: Vec<Stmt>,
+    pub globals: Environment,
+    pub environment: Environment
 }
 
 impl Default for Interpreter{
     fn default() -> Interpreter {
-        Interpreter{
-            statements: Vec::new(),
-            environment: Environment::default()
-        }
+        // Interpreter{
+        //     statements: Vec::new(),
+        //     globals: Environment::default(),
+        //     environment: Environment::default()
+        // }
+        let mut globals_env: HashMap<String, (Option<Value>, VarLocation)> = HashMap::new();
+        globals_env.insert(String::from("clock"),
+        (
+            Some(Value::NativeFunction(NativeFunction{ 
+                name: format!("clock"), 
+                arity: 0, 
+                callable: |_, _|{
+                    let start_time = SystemTime::now();
+                    let since_epoch = start_time.duration_since(UNIX_EPOCH).unwrap();
+                    Ok(Value::Number(since_epoch.as_millis() as f64))
+                }, 
+            })),
+            VarLocation{
+                line: 0,
+                col: 0
+            }
+        ));
+
+        let mut globals = Environment::default();
+        globals.set_values(globals_env);
+        globals.set_enclosing(None);
+
+        Interpreter { 
+            statements: Vec::new(), 
+            globals: globals.clone(), 
+            environment: globals 
+        }   
     }
 }
 
@@ -70,6 +116,7 @@ impl Interpreter{
     pub fn new(statements: Vec<Stmt>) -> Self{
         Interpreter{
             statements: statements,
+            globals: Environment::default(),
             environment: Environment::default()
         }
     }
@@ -94,6 +141,31 @@ impl Interpreter{
         }
         else{
             panic!("Unreacheable Expression Error");
+        }
+    }
+
+    fn visit_function_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Function { name, parameters, body } = stmt.clone(){
+            if self.globals.return_values().contains_key(&name){
+                return Err(InterpreterError { 
+                    error_message: format!("Function already defined"), 
+                    line: 0, 
+                    column: 0 
+                })
+            }
+            else{
+                let function = Value::UserDefined(UserDefined{
+                    name: name.clone(),
+                    parameters: parameters,
+                    body: *body,
+                    declaration: stmt.clone()
+                });
+                self.environment.define(name.clone(), 0, 0, Some(function));
+                return Ok(())
+            }
+        }
+        else{
+            panic!("Unreachable Function Error");
         }
     }
 
@@ -129,7 +201,7 @@ impl Interpreter{
     fn visit_print_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Print { expression } = stmt{
             let value = self.evaluate(*expression)?;
-            println!("{}", value_to_string(value));
+            println!("{}", Value::value_to_string(value));
             return Ok(());
         }
         else{
@@ -190,7 +262,7 @@ impl Interpreter{
                 (UnaryOpType::Bang, _) => return Ok(Value::Bool(!Interpreter::is_truthy(right_val.clone()))),
                 (_, _) => return Err(InterpreterError { 
                     error_message: format!("Incorrect use of unary operator {:?} on object of type {:?} at line: {}, column: {}", 
-                    operator, type_to_string(value_type(right_val)), line, col), 
+                    operator, Type::type_to_string(Value::value_type(right_val)), line, col), 
                     line: line, 
                     column: col
                 })
@@ -251,7 +323,7 @@ impl Interpreter{
                 (_, _, _) => {
                     return Err(InterpreterError { 
                         error_message: format!("Incorrect use of unary operator {:?} on objects of type {:?} and {:?} at line: {}, column: {}", 
-                        operator, type_to_string(value_type(left_val)), type_to_string(value_type(right_val)), line, col), 
+                        operator, Type::type_to_string(Value::value_type(left_val)), Type::type_to_string(Value::value_type(right_val)), line, col), 
                         line: line, 
                         column: col 
                     })
@@ -260,6 +332,71 @@ impl Interpreter{
         }
         else{
             panic!("Unreachable Binary Error");
+        }
+    }
+
+    fn visit_call_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Call { callee , paren , arguments } = expr{
+            let callee_value: Value = self.evaluate(*callee)?;
+
+            let argument_values: Result<Vec<Value>, InterpreterError> = arguments
+            .into_iter()
+            .map(|expr| self.evaluate(expr))
+            .collect();
+
+            let args = argument_values?;
+
+            match callee_value{
+                Value::NativeFunction(function) =>{
+                    if args.len() != function.arity() {
+                        return Err(InterpreterError { 
+                            error_message: format!("Expected {} arguments but got {}",
+                            function.arity(), args.len()), 
+                            line: 0, 
+                            column: 0 
+                        })
+                    }
+                    else{
+                        let func =  function.call(self, &args);
+                        match func{
+                            Ok(func) => return Ok(func),
+                            Err(err) => return Err(InterpreterError { 
+                                error_message: err, 
+                                line: 0, 
+                                column: 0  
+                            })
+                        }
+                    }
+                }
+                Value::UserDefined(function) =>{
+                    if args.len() != function.arity() {
+                        return Err(InterpreterError { 
+                            error_message: format!("Expected {} arguments but got {}",
+                            function.arity(), args.len()), 
+                            line: 0, 
+                            column: 0 
+                        })
+                    }
+                    else{
+                        let func =  function.call(self, &args);
+                        match func{
+                            Ok(func) => return Ok(Value::Nil),
+                            Err(err) => return Err(err)
+                        }
+                    }
+                }
+                _ => {
+                    return Err(InterpreterError { 
+                        error_message: format!("Can only call functions and classes"), 
+                        line: 0, 
+                        column: 0 
+                    });
+                }
+            }
+
+        }
+        else{
+            panic!("Unreachable Call Error");
         }
     }
 
@@ -312,7 +449,7 @@ impl Interpreter{
         }
     }
 
-    fn evaluate(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+    pub fn evaluate(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Grouping { expression } = expr{
             return self.evaluate(*expression);
         }
@@ -334,6 +471,9 @@ impl Interpreter{
         else if let Expr::Logical { left: _ , operator: _ , right: _ } = expr{
             return Ok(self.visit_logical_expr(expr))?;
         }
+        else if let Expr::Call { callee: _ , paren: _ , arguments: _ } = expr{
+            return Ok(self.visit_call_expr(expr))?;
+        }
         else{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
@@ -343,7 +483,7 @@ impl Interpreter{
         }
     }
 
-    fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+    pub fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression: _ } = stmt{
             //println!("Aw shucks");
             return Ok(self.visit_expression_stmt(stmt)?);
@@ -364,6 +504,9 @@ impl Interpreter{
         else if let Stmt::While { condition: _ , body: _ } = stmt{
             return Ok(self.visit_while_stmt(stmt))?;
         }
+        else if let Stmt::Function { name: _ , parameters: _ , body: _ } = stmt{
+            return Ok(self.visit_function_stmt(stmt))?;
+        }
         else{
             //println!("Kys");
             return Err(InterpreterError { 
@@ -374,7 +517,7 @@ impl Interpreter{
         }
     }
 
-    fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<(), InterpreterError>{
+    pub fn execute_block(&mut self, statements: Vec<Stmt>, env: Option<Environment>) -> Result<(), InterpreterError>{
         self.environment = Environment::new(self.environment.clone());
         for stmt in statements{
             let execute: Result<(), InterpreterError> = self.execute(stmt);
@@ -394,7 +537,7 @@ impl Interpreter{
 
     fn visit_block_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Block { statements } = stmt{
-            let execute = self.execute_block(statements);
+            let execute = self.execute_block(statements, None);
             match execute{
                 Ok(exec) => return Ok(()),
                 Err(err) => return Err(err)
