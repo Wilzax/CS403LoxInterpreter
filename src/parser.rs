@@ -35,8 +35,11 @@ statement      → exprStmt
                | forStmt
                | ifStmt
                | printStmt
+               | returnStmt
                | whileStmt
                | block ;
+
+returnStmt     → "return" expression? ";" ;
 
 forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
                  expression? ";"
@@ -94,6 +97,7 @@ impl Parser{
 
     fn function(&mut self, kind: String) -> Result<Stmt, ParserError>{
         let name: Token = self.consume(TokenType::Identifier, format!("Expect {} name", kind))?;
+        let l_paren: Token = self.consume(TokenType::LeftParen, format!("Expect '(' after {} name", kind))?;
         let mut parameters: Vec<Token> = Vec::new();
         if !self.check(TokenType::RightParen){
             loop{
@@ -153,6 +157,9 @@ impl Parser{
         if self.matches(vec![TokenType::For]){
             return self.for_statement();
         }
+        if self.matches(vec![TokenType::Return]){
+            return self.return_statement();
+        }
         return self.expression_statement();
     }
 
@@ -198,6 +205,21 @@ impl Parser{
         match correct_end{
             Ok(token) => return Ok(Stmt::Print { expression: Box::new(value) }),
             Err(err) => return Err(err)
+        }
+    }
+
+    fn return_statement(&mut self) -> Result<Stmt, ParserError>{
+        let keyword: Token = self.previous();
+        let mut value = Expr::None;
+        if !self.check(TokenType::Semicolon){
+            value = self.expression()?;
+        }
+        let semi = self.consume(TokenType::Semicolon, format!("Expect ';' after return value"))?;
+        if let Expr::None = value.clone(){
+            return Ok(Stmt::Return { keyword: keyword, value: None })
+        }
+        else{
+            return Ok(Stmt::Return { keyword: keyword, value: Some(value) })
         }
     }
 
@@ -648,24 +670,5 @@ mod tests{
 
     use super::*;
 
-    // #[test]
-    // fn simple_addition(){
-    //     let input = "(3 + 4)".to_string();
-    //     let mut test_scanner: Scanner = Scanner::default();
-    //     let tokens: Vec<Token> = test_scanner.scan_tokens(input);
-    //     let expr: Result<Expr, ParserError> = parse_begin(tokens);
-    //     match expr{
-    //         Ok(express) =>{
-    //             if let Expr::Grouping { expression } = express{
-    //                 if let Expr::Binary { left  , operator , right, line: _, col: _ } = *expression{
-    //                     assert_eq!(*left, Expr::Literal { value: expr::LiteralType::Number(3.0)}, "Error parsing left hand expression");
-    //                     assert_eq!(operator, BinaryOpType::Plus, "Error parsing operand");
-    //                     assert_eq!(*right, Expr::Literal { value: expr::LiteralType::Number(4.0)}, "Error parsing right hand expression");
-    //                 }
-    //             } 
-    //         }
-    //         Err(err) => panic!("Parser Error In Grouping")
-    //     }
 
-    // }
 }

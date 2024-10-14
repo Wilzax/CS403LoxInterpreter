@@ -72,7 +72,8 @@ impl Type{
 pub struct Interpreter{
     pub statements: Vec<Stmt>,
     pub globals: Environment,
-    pub environment: Environment
+    pub environment: Environment,
+    pub return_value: Option<Value>
 }
 
 impl Default for Interpreter{
@@ -107,7 +108,8 @@ impl Default for Interpreter{
         Interpreter { 
             statements: Vec::new(), 
             globals: globals.clone(), 
-            environment: globals 
+            environment: globals,
+            return_value: None
         }   
     }
 }
@@ -117,7 +119,8 @@ impl Interpreter{
         Interpreter{
             statements: statements,
             globals: Environment::default(),
-            environment: Environment::default()
+            environment: Environment::default(),
+            return_value: None
         }
     }
 
@@ -154,13 +157,16 @@ impl Interpreter{
                 })
             }
             else{
+                //println!("Func def");
                 let function = Value::UserDefined(UserDefined{
                     name: name.clone(),
                     parameters: parameters,
                     body: *body,
-                    declaration: stmt.clone()
+                    declaration: stmt.clone(),
+                    closure: self.environment.clone()
                 });
                 self.environment.define(name.clone(), 0, 0, Some(function));
+                //println!("Func def finish");
                 return Ok(())
             }
         }
@@ -227,6 +233,19 @@ impl Interpreter{
         }
         else{
             panic!("Unreachable Var Error")
+        }
+    }
+
+    fn visit_return_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Return { keyword, value } = stmt{
+            let retval = self.evaluate(value.unwrap());
+            match retval{
+                Ok(val) => Ok(self.return_value = Some(val)),
+                Err(none) => Ok(self.return_value = None) 
+            }
+        }
+        else{
+            panic!("Unreachable return error");
         }
     }
 
@@ -337,6 +356,7 @@ impl Interpreter{
 
     fn visit_call_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Call { callee , paren , arguments } = expr{
+            println!("Callin");
             let callee_value: Value = self.evaluate(*callee)?;
 
             let argument_values: Result<Vec<Value>, InterpreterError> = arguments
@@ -357,6 +377,7 @@ impl Interpreter{
                         })
                     }
                     else{
+
                         let func =  function.call(self, &args);
                         match func{
                             Ok(func) => return Ok(func),
@@ -378,9 +399,10 @@ impl Interpreter{
                         })
                     }
                     else{
+                        println!("User func call");
                         let func =  function.call(self, &args);
                         match func{
-                            Ok(func) => return Ok(Value::Nil),
+                            Ok(func) => return Ok(func),
                             Err(err) => return Err(err)
                         }
                     }
@@ -507,6 +529,9 @@ impl Interpreter{
         else if let Stmt::Function { name: _ , parameters: _ , body: _ } = stmt{
             return Ok(self.visit_function_stmt(stmt))?;
         }
+        else if let Stmt::Return { keyword: _ , value: _ } = stmt{
+            return Ok(self.visit_return_stmt(stmt))?;
+        }
         else{
             //println!("Kys");
             return Err(InterpreterError { 
@@ -518,7 +543,10 @@ impl Interpreter{
     }
 
     pub fn execute_block(&mut self, statements: Vec<Stmt>, env: Option<Environment>) -> Result<(), InterpreterError>{
-        self.environment = Environment::new(self.environment.clone());
+        match env{
+            Some(enviro) => self.environment = enviro,
+            None => self.environment = Environment::new(self.environment.clone()),
+        }
         for stmt in statements{
             let execute: Result<(), InterpreterError> = self.execute(stmt);
             match execute{
@@ -526,12 +554,14 @@ impl Interpreter{
                 Err(err) => return Err(err)
             }
         }
+        //println!("Problem after execute");
         if let Some(enclosing) = self.environment.return_enclosing(){
             self.environment = *enclosing;
         }
         else{
-            panic!("Unreachable");
+            panic!("Unreachable hell");
         }
+        //println!("Post enclosing");
         return Ok(());
     }
 
@@ -576,21 +606,4 @@ mod tests{
     use crate::parser::*;
     use crate::expr::*;
 
-    // #[test]
-    // fn simple_addition(){
-    //     let expr: Expr = Expr::Grouping { 
-    //         expression: Box::new(Expr::Binary { 
-    //             left: Box::new(Expr::Literal { value: expr::LiteralType::Number(3.0)}), 
-    //             operator: BinaryOpType::Plus, 
-    //             right: Box::new(Expr::Literal { value: expr::LiteralType::Number(4.0)}), 
-    //             line: 0, 
-    //             col: 0 
-    //         }) 
-    //     };
-    //     let val: Result<Value, InterpreterError> = Interpreter::interpret(expr);
-    //     match val{
-    //         Ok(val) => assert_eq!("7", value_to_string(val), "Error interpreting 3 + 4"),
-    //         Err(err) => panic!("Error when interpreting")
-    //     }
-    // }
 }

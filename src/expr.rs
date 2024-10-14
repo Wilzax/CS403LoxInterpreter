@@ -42,7 +42,7 @@ pub enum Expr {
         paren: Token,
         arguments: Box<Vec<Expr>>
     },
-    
+    None
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

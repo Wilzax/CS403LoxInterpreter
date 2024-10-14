@@ -22,8 +22,8 @@ pub struct UserDefined{
     pub name: String,
     pub parameters: Vec<Token>,
     pub body: Vec<Stmt>,
-    pub declaration: Stmt
-    //closure: Rc<RefCell<Environment>>
+    pub declaration: Stmt,
+    pub closure: Environment
 }
 
 impl NativeFunction{
@@ -36,15 +36,24 @@ impl NativeFunction{
 }
 
 impl UserDefined{
-    pub fn call(&self, interpreter: &mut Interpreter, args: &Vec<Value>) -> Result<(), InterpreterError>{
+    pub fn call(&self, interpreter: &mut Interpreter, args: &Vec<Value>) -> Result<Value, InterpreterError>{
         if let Stmt::Function { name: _ , parameters , body } = &self.declaration{
-            let mut environment: Environment = Environment::default();
-            let i = 0;
+            //println!("Inside func");
+            let mut environment: Environment = Environment::new(self.closure.clone());
+            let mut i = 0;
             while i < parameters.len() {
                 let argument = args.get(i).unwrap().clone();
                 environment.define_token(parameters.get(i).unwrap().clone(), argument);
+                i += 1;
             }
-            return interpreter.execute_block(*body.clone(), Some(environment));
+            let block_env = Environment::new(environment);
+            interpreter.execute_block(*body.clone(), Some(block_env))?;
+            match &interpreter.return_value{
+                Some(val) =>{
+                    return Ok(val.clone())
+                }
+                None => return Ok(Value::Nil)
+            }
         }
         else{
             panic!("Unreachable Function Error");

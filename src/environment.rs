@@ -4,7 +4,7 @@ use crate::expr::{Expr};
 use crate::interpreter::{InterpreterError, Value};
 use crate::scanner::{Token, TokenType};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment{
     pub values: HashMap<String, (Option<Value>, VarLocation)>,
     pub enclosing: Option<Box<Environment>>

@@ -1,5 +1,5 @@
 use crate::expr::*;
-use crate::scanner::{Token, TokenType};
+use crate::scanner::Token;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
@@ -31,5 +31,9 @@ pub enum Stmt {
         name: String,
         parameters: Vec<Token>,
         body: Box<Vec<Stmt>>
+    },
+    Return{
+        keyword: Token,
+        value: Option<Expr>
     }
 }
