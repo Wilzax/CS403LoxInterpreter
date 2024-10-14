@@ -452,7 +452,7 @@ mod tests{
             let result = Interpreter::interpret(vec![stmt]);
             
             match result {
-                Ok(_) => assert!(true, "Expected no errors during interpretation"),
+                Ok(_) => assert!(true, "Expected no errors during addition"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
         }
@@ -470,7 +470,7 @@ mod tests{
             let result = Interpreter::interpret(vec![stmt]);
             
             match result {
-                Ok(_) => assert!(true, "Expected no errors during interpretation"),
+                Ok(_) => assert!(true, "Expected no errors during subtraction"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
         }
@@ -488,7 +488,7 @@ mod tests{
             let result = Interpreter::interpret(vec![stmt]);
             
             match result {
-                Ok(_) => assert!(true, "Expected no errors during interpretation"),
+                Ok(_) => assert!(true, "Expected no errors during multiplication"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
         }
@@ -506,7 +506,7 @@ mod tests{
             let result = Interpreter::interpret(vec![stmt]);
             
             match result {
-                Ok(_) => assert!(true, "Expected no errors during interpretation"),
+                Ok(_) => assert!(true, "Expected no errors during division"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
         }
@@ -525,7 +525,7 @@ mod tests{
             let result = Interpreter::interpret(vec![var_stmt, print_stmt]);
     
             match result {
-                Ok(_) => assert!(true, "Expected no errors during variable assignment and printing"),
+                Ok(_) => assert!(true, "Expected no errors during variable assignment"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
         }
@@ -579,7 +579,7 @@ mod tests{
                     let expected_value = Value::Number(5.0);
                     assert_eq!(expected_value, Value::Number(5.0)); 
                 },
-                Err(err) => panic!("Expected a successful division, but got an error: {}", err.return_error()),
+                Err(err) => panic!("Expected correct division, but got an error: {}", err.return_error()),
             }
         }
 
@@ -601,7 +601,7 @@ mod tests{
                     let expected_value = Value::Number(44.0);
                     assert_eq!(expected_value, Value::Number(44.0)); 
                 },
-                Err(err) => panic!("Expected a successful division, but got an error: {}", err.return_error()),
+                Err(err) => panic!("Expected correct multiplication, but got an error: {}", err.return_error()),
             }
         }
 
@@ -623,7 +623,7 @@ mod tests{
                     let expected_value = Value::Number(188.0);
                     assert_eq!(expected_value, Value::Number(188.0)); 
                 },
-                Err(err) => panic!("Expected a successful division, but got an error: {}", err.return_error()),
+                Err(err) => panic!("Expected correct addition, but got an error: {}", err.return_error()),
             }
         }
 
@@ -645,7 +645,7 @@ mod tests{
                     let expected_value = Value::Number(192.0);
                     assert_eq!(expected_value, Value::Number(192.0)); 
                 },
-                Err(err) => panic!("Expected a successful division, but got an error: {}", err.return_error()),
+                Err(err) => panic!("Expected correct subtraction, but got an error: {}", err.return_error()),
             }
         }
     }
