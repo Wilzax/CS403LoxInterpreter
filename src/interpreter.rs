@@ -73,7 +73,7 @@ pub struct Interpreter{
     pub statements: Vec<Stmt>,
     pub globals: Environment,
     pub environment: Environment,
-    pub return_value: Option<Value>
+    pub return_value: Option<Value>,
 }
 
 impl Default for Interpreter{
@@ -109,19 +109,22 @@ impl Default for Interpreter{
             statements: Vec::new(), 
             globals: globals.clone(), 
             environment: globals,
-            return_value: None
+            return_value: None,
         }   
     }
 }
 
 impl Interpreter{
     pub fn new(statements: Vec<Stmt>) -> Self{
-        Interpreter{
-            statements: statements,
-            globals: Environment::default(),
-            environment: Environment::default(),
-            return_value: None
-        }
+        // Interpreter{
+        //     statements: statements,
+        //     globals: Environment::default(),
+        //     environment: Environment::default(),
+        //     return_value: None,
+        // }
+        let mut interp = Interpreter::default();
+        interp.statements = statements;
+        return interp
     }
 
     pub fn interpret(statements: Vec<Stmt>) -> Result<(), InterpreterError>{
@@ -136,6 +139,13 @@ impl Interpreter{
         }
         return Ok(())
     }
+
+    // pub fn get_user_func(&self, name: String) -> UserDefined{
+    //     match self.user_func.get(&name){
+    //         Some(func) => func.clone(),
+    //         None => panic!("Could not find function with name {}", name)
+    //     }
+    // }
 
     fn visit_expression_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression } = stmt{
@@ -153,19 +163,22 @@ impl Interpreter{
                 return Err(InterpreterError { 
                     error_message: format!("Function already defined"), 
                     line: 0, 
-                    column: 0 
+                    column: 0,
+                    value: Value::Nil 
                 })
             }
             else{
                 //println!("Func def");
-                let function = Value::UserDefined(UserDefined{
+                let function_inside = UserDefined{
                     name: name.clone(),
                     parameters: parameters,
                     body: *body,
                     declaration: stmt.clone(),
                     closure: self.environment.clone()
-                });
+                };
+                let function = Value::UserDefined(function_inside.clone());
                 self.environment.define(name.clone(), 0, 0, Some(function));
+                self.environment.user_func.insert(name.clone(), function_inside);
                 //println!("Func def finish");
                 return Ok(())
             }
@@ -194,7 +207,7 @@ impl Interpreter{
 
     fn visit_while_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::While { condition, body } = stmt{
-            while Interpreter::is_truthy(self.evaluate(*condition.clone())?){
+            while Interpreter::is_truthy(self.evaluate(condition.clone())?){
                 self.execute(*body.clone())?;
             }
             return Ok(());
@@ -240,8 +253,8 @@ impl Interpreter{
         if let Stmt::Return { keyword, value } = stmt{
             let retval = self.evaluate(value.unwrap());
             match retval{
-                Ok(val) => Ok(self.return_value = Some(val)),
-                Err(none) => Ok(self.return_value = None) 
+                Ok(val) => Err(InterpreterError::new(format!("RETURN"), 0, 0, val)),
+                Err(none) => Err(InterpreterError::new(format!("RETURN"), 0, 0, Value::Nil)) 
             }
         }
         else{
@@ -283,7 +296,8 @@ impl Interpreter{
                     error_message: format!("Incorrect use of unary operator {:?} on object of type {:?} at line: {}, column: {}", 
                     operator, Type::type_to_string(Value::value_type(right_val)), line, col), 
                     line: line, 
-                    column: col
+                    column: col,
+                    value: Value::Nil
                 })
             }
         }
@@ -311,7 +325,8 @@ impl Interpreter{
                         return Err(InterpreterError { 
                             error_message: format!("Divide by zero error at line: {}, column: {}", line, col), 
                             line: line, 
-                            column: col 
+                            column: col,
+                            value: Value::Nil 
                         })
                     }
                     else {
@@ -344,7 +359,8 @@ impl Interpreter{
                         error_message: format!("Incorrect use of unary operator {:?} on objects of type {:?} and {:?} at line: {}, column: {}", 
                         operator, Type::type_to_string(Value::value_type(left_val)), Type::type_to_string(Value::value_type(right_val)), line, col), 
                         line: line, 
-                        column: col 
+                        column: col,
+                        value: Value::Nil 
                     })
                 }
             }
@@ -356,7 +372,7 @@ impl Interpreter{
 
     fn visit_call_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Call { callee , paren , arguments } = expr{
-            println!("Callin");
+            //println!("Callin");
             let callee_value: Value = self.evaluate(*callee)?;
 
             let argument_values: Result<Vec<Value>, InterpreterError> = arguments
@@ -373,7 +389,8 @@ impl Interpreter{
                             error_message: format!("Expected {} arguments but got {}",
                             function.arity(), args.len()), 
                             line: 0, 
-                            column: 0 
+                            column: 0,
+                            value: Value::Nil 
                         })
                     }
                     else{
@@ -384,7 +401,8 @@ impl Interpreter{
                             Err(err) => return Err(InterpreterError { 
                                 error_message: err, 
                                 line: 0, 
-                                column: 0  
+                                column: 0,
+                                value: Value::Nil  
                             })
                         }
                     }
@@ -395,12 +413,15 @@ impl Interpreter{
                             error_message: format!("Expected {} arguments but got {}",
                             function.arity(), args.len()), 
                             line: 0, 
-                            column: 0 
+                            column: 0,
+                            value: Value::Nil 
                         })
                     }
                     else{
-                        println!("User func call");
+                        //println!("User func call");
+                        //let current_interp = self.environment.enclosing.clone();
                         let func =  function.call(self, &args);
+                        //self.environment.enclosing = current_interp;
                         match func{
                             Ok(func) => return Ok(func),
                             Err(err) => return Err(err)
@@ -411,7 +432,8 @@ impl Interpreter{
                     return Err(InterpreterError { 
                         error_message: format!("Can only call functions and classes"), 
                         line: 0, 
-                        column: 0 
+                        column: 0,
+                        value: Value::Nil 
                     });
                 }
             }
@@ -500,7 +522,8 @@ impl Interpreter{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
                 line: 0, 
-                column: 0 
+                column: 0,
+                value: Value::Nil 
             })    
         }
     }
@@ -537,7 +560,8 @@ impl Interpreter{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that statement type yet bud"), 
                 line: 0, 
-                column: 0 
+                column: 0,
+                value: Value::Nil 
             })
         }
     }
@@ -555,7 +579,7 @@ impl Interpreter{
             }
         }
         //println!("Problem after execute");
-        if let Some(enclosing) = self.environment.return_enclosing(){
+        if let Some(enclosing) = self.environment.enclosing.clone(){
             self.environment = *enclosing;
         }
         else{
@@ -582,15 +606,17 @@ impl Interpreter{
 pub struct InterpreterError{
     error_message: String,
     line: usize,
-    column: i64
+    column: i64,
+    pub value: Value
 }
 
 impl InterpreterError{
-    pub fn new(error_message: String, line: usize, column: i64) -> Self{
+    pub fn new(error_message: String, line: usize, column: i64, value: Value) -> Self{
         InterpreterError {
             error_message: error_message,
             line: line,
-            column: column
+            column: column,
+            value: value
         }
     }
 

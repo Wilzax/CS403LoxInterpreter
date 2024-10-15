@@ -11,8 +11,11 @@ use std::io::Read;
 
 fn main() {
     println!("");
-    scanner::run("fun sayHi(x) {{return 10;}}\nprint sayHi(12);".to_string());
-    
+    scanner::run("fun fib(n) {{\nif (n <= 1) return n;\nelse{{return fib(n-2) + fib(n-1);}}}}\nfor (var i = 0; i < 21; i = i + 1)\n{{print fib(i);}}".to_string());
+    //scanner::run("fun fib(n) {{n = n + 1;\nprint n;\nif (n > 15) {{print \"hiii\";\nreturn n;}}\n return fib(n);}}\nvar x = fib(12);\n print x;".to_string());
+    //scanner::run("fun sayHi(first, last) {{\n print \"Hi \" + first + \" \" + last + \"!\";}}\nsayHi(\"Dear\", \"Reader\");".to_string());
+    //scanner::run("for (var i = 0; i < 10; i = i + 1)\n{{print i;}}".to_string());
+    //scanner::run("var i = 0; \n while (i < 10){{\nprint i;\n i = i + 1;\nprint i;}}".to_string());
     let args: Vec<String> = args().collect();
     println!("Detected {} main arguments", args.len());
     if args.len() < 2 {

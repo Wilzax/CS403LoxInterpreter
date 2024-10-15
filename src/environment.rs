@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::env::var;
+use crate::lox_callable::*;
 use crate::expr::{Expr}; 
 use crate::interpreter::{InterpreterError, Value};
 use crate::scanner::{Token, TokenType};
@@ -7,14 +8,16 @@ use crate::scanner::{Token, TokenType};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Environment{
     pub values: HashMap<String, (Option<Value>, VarLocation)>,
-    pub enclosing: Option<Box<Environment>>
+    pub enclosing: Option<Box<Environment>>,
+    pub user_func: HashMap<String, UserDefined>
 }
 
 impl Default for Environment{
     fn default() -> Environment {
         Environment{
             values: HashMap::new(),
-            enclosing: None
+            enclosing: None,
+            user_func: HashMap::new()
         }
     }
 }
@@ -39,7 +42,16 @@ impl Environment{
     pub fn new(enclosing: Environment) -> Self{
         Environment{
             values: HashMap::new(),
-            enclosing: Some(Box::new(enclosing))
+            enclosing: Some(Box::new(enclosing)),
+            user_func: HashMap::new()
+        }
+    }
+
+    pub fn full(vals: HashMap<String, (Option<Value>, VarLocation)>, enclosing: Environment)-> Self{
+        Environment{
+            values: vals,
+            enclosing: Some(Box::new(enclosing.clone())),
+            user_func: enclosing.user_func
         }
     }
 
@@ -114,7 +126,8 @@ impl Environment{
                 Err(InterpreterError::new(format!("use of undefined variable '{}' at line: {}, column: {}",
                 name, line, col),
                 line,
-                col)),
+                col,
+                Value::Nil)),
                 LookupResult::UndefinedAndUndeclared => {
                     match &self.enclosing {
                         Some(enclosing) => enclosing.get(expr),
@@ -122,7 +135,8 @@ impl Environment{
                                 format!("use of undefined and undeclared variable '{}' at line: {}, column: {}",
                                 name, line, col),
                                 line,
-                                col))
+                                col,
+                                Value::Nil))
                     }
                 }
             }
@@ -145,7 +159,8 @@ impl Environment{
       format!("Attempting to assign undefined variable '{}' at line: {}, column: {}",
                     name, line, col), 
                     line, 
-             col))
+             col,
+                    Value::Nil))
         }
     }
 
@@ -159,7 +174,12 @@ impl Environment{
                         col: var_location.col 
                     },
                 },
-                None => LookupResult::UndefinedAndUndeclared
+                None => {
+                    match self.user_func.get(name){
+                        Some(func) => LookupResult::Ok(Value::UserDefined(func.clone())),
+                        None => LookupResult::UndefinedAndUndeclared
+                    }
+                }
             }
         }
         else{

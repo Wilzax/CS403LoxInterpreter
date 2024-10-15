@@ -183,6 +183,7 @@ impl Parser{
         let mut increment: Option<Expr> = None;
         if !self.check(TokenType::RightParen){
             increment = Some(self.expression()?);
+            println!("Right here");
         }
         let semi = self.consume(TokenType::RightParen, format!("Expect ')' after for clauses"))?;
         let mut body: Stmt = self.statement()?;
@@ -192,11 +193,12 @@ impl Parser{
         if condition == None{
             condition = Some(Expr::Literal { value: expr::LiteralType::True });
         }
-        body = Stmt::While { condition: Box::new(condition.unwrap()), body: Box::new(body) };
+        body = Stmt::While { condition: condition.unwrap(), body: Box::new(body) };
         if initializer != None{
             body = Stmt::Block { statements: vec![initializer.unwrap(), body] };
         }
-        return Ok(body);
+        let final_body = body;
+        return Ok(final_body);
     }
 
     fn print_statement(&mut self) -> Result<Stmt, ParserError>{
@@ -250,9 +252,9 @@ impl Parser{
     fn while_statement(&mut self) -> Result<Stmt, ParserError>{
         let begin = self.consume(TokenType::LeftParen, format!("Expect '(' after 'while'."));
         let condition: Expr = self.expression()?;
-        let end = self.consume(TokenType::LeftParen, format!("Expect ')' after condition."));
+        let end = self.consume(TokenType::RightParen, format!("Expect ')' after condition."));
         let body = self.statement()?;
-        return Ok(Stmt::While { condition: Box::new(condition), body: Box::new(body) });
+        return Ok(Stmt::While { condition: condition, body: Box::new(body) });
     }
     fn block(&mut self) -> Result<Vec<Stmt>, ParserError>{
         let mut statements: Vec<Stmt> = Vec::new();
