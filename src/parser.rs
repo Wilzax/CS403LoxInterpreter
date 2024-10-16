@@ -183,7 +183,7 @@ impl Parser{
         let mut increment: Option<Expr> = None;
         if !self.check(TokenType::RightParen){
             increment = Some(self.expression()?);
-            println!("Right here");
+            //println!("Right here");
         }
         let semi = self.consume(TokenType::RightParen, format!("Expect ')' after for clauses"))?;
         let mut body: Stmt = self.statement()?;

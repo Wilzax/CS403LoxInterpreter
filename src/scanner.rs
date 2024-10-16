@@ -8,6 +8,7 @@ use std::str;
 use text_io::read;
 use crate::interpreter::Interpreter;
 use crate::parser::{self, ParserError};
+use crate::resolver::{self, Resolver};
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
@@ -431,10 +432,24 @@ pub(crate) fn run(source: String) ->(){
     let stmt = parser::parse_begin(tokens.clone());
     match stmt{
         Ok(stmt) => {
-            let interp = Interpreter::interpret(stmt);
-            match interp{
-                Ok(()) => return (),
-                Err(err) => println!("{}\n", err.return_error())
+            let mut interpreter = Interpreter::new(stmt.clone());
+            let mut resolver = Resolver::new(interpreter);
+            let resolved = resolver.resolve(stmt.clone()); 
+            match resolved.0{
+                Ok(good) => {
+                    //println!("Made through resolving");
+                    let mut inter = resolved.1.clone();
+                    let interp = inter.interpret(stmt);
+                    match interp{
+                        Ok(()) => return (),
+                        Err(err) => println!("{}\n", err.return_error())
+                    }
+                }
+                Err(err) => {
+                    for str in err{
+                        println!("{}", str);
+                    }
+                }
             }
         },
         Err(err) => println!("{}\n", err.return_error())

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::env::var;
 use crate::lox_callable::*;
@@ -87,6 +88,7 @@ impl Environment{
                 }
             )
         );
+        //println!("I AM GOING TO KILL MYSELF {}, {}", line, col);
         return ()
     }
 
@@ -150,6 +152,7 @@ impl Environment{
         //println!("HERE");
         if self.values.contains_key(&name){
             //println!("NOPE");
+            //self.values.remove(&name);
             self.define(name.clone(), line, col, Some(val.clone()));
             return Ok(());
         }
@@ -162,6 +165,11 @@ impl Environment{
              col,
                     Value::Nil))
         }
+    }
+
+    pub fn assign_at(&mut self, name: String, line: usize, col: i64, val: &Value, distance: usize) -> Result<(), InterpreterError>{
+        return self.assign(name, line, col, val);
+        
     }
 
     pub fn val_lookup(&self, expr: &Expr) -> LookupResult{
@@ -187,6 +195,39 @@ impl Environment{
         }
     }
 
+    // pub fn read_at(&self, distance: usize, name: String){
+    //     self.ancestor(distance).borrow().
+    // }
+    pub fn get_at(&mut self, distance: usize, expr: Expr) -> Result<Value, InterpreterError>{
+        return self.get(&expr);
+    }
+    pub fn ancestor(&mut self, distance: usize) -> Environment{
+        let mut current: Environment = self.clone();
+        for _ in 0..distance{
+            //println!("Maybe {}", distance);
+            current = *current.enclosing.unwrap().clone();
+            // match maybe_enclosing{
+            //     Some(enc) => current = *enc,
+            //     None => return current,
+            // }
+            //current = *maybe_enclosing.unwrap();
+        }
+        return current;
+    }
+
+    // pub fn assign_ancestor(&mut self, name: String, line: usize, col: i64, val: &Value, distance: usize) -> Result<(), InterpreterError>{
+    //     let mut current: Environment = self.clone();
+    //     for _ in 0..distance{
+    //         println!("Maybe {}", distance);
+    //         let maybe_enclosing = current.enclosing;
+    //         match maybe_enclosing{
+    //             Some(enc) => current = *enc,
+    //             None => (),
+    //         }
+    //         //current = *maybe_enclosing.unwrap();
+    //     }
+    //     return Ok(current.assign(name, line, col, val))?;
+    //}
 
 }
 
