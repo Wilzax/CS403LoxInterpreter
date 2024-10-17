@@ -152,6 +152,17 @@ impl Environment{
                 }
             }
         }
+        else if let Expr::This { keyword } = expr{
+            match self.val_lookup(&expr){
+                LookupResult::Ok(val) => Ok(val),
+                _ => Err(InterpreterError::new(
+                    format!("Fucked up 'this'"), 
+                    0, 
+                    0, 
+                    Value::Nil
+                ))
+            }
+        }
         else{
             panic!("Undefined hashmap error");
         }
@@ -201,6 +212,19 @@ impl Environment{
                         //None => LookupResult::UndefinedAndUndeclared
                     }
                 }
+            }
+        }
+        else if let Expr::This { keyword } = expr{
+            let name = format!("this");
+            match self.values.get(&name){
+                Some((maybe_val, var_location)) => match maybe_val{
+                    Some(val) => LookupResult::Ok(val.clone()),
+                    None => LookupResult::UndefinedButDeclared { 
+                        line: var_location.line, 
+                        col: var_location.col 
+                    },
+                },
+                None => LookupResult::UndefinedAndUndeclared
             }
         }
         else{

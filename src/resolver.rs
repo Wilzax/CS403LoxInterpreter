@@ -77,9 +77,9 @@ impl Resolver{
                 self.end_scope();
             }
             Stmt::Class { name, superclass: _ , methods } => {
-                //let enclosing_class = self.current_class;
+                let enclosing_class = self.current_class;
                 self.begin_scope();
-                //self.current_class = ClassState::Class;
+                self.current_class = ClassState::Class;
                 let x = self.scopes.last_mut();
                 match x{
                     Some(scop) => scop.insert(format!("this"), true),
@@ -92,7 +92,7 @@ impl Resolver{
                     self.resolve_function(method, declaration);
                 }
                 self.end_scope();
-                //self.current_class = enclosing_class;
+                self.current_class = enclosing_class;
             }
             Stmt::Expr { expression } => {
                 self.resolve_expr(*expression);

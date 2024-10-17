@@ -70,6 +70,10 @@ impl UserDefined{
         if let Stmt::Function { name: _ , parameters , body } = &self.declaration{
             //println!("Inside func");
             let mut environment: Environment = Environment::default();
+            //let mut environment: Environment = Environment::new(self.closure.clone());
+            for entries in self.closure.values.clone(){
+                environment.define(entries.0, 0, 0, entries.1.0);
+            }
             let mut i = 0;
             while i < parameters.len() {
                 let argument = args.get(i).unwrap().clone();
@@ -77,6 +81,7 @@ impl UserDefined{
                 i += 1;
             }
             let mut block_env = Environment::full(environment.return_values(), interpreter.environment.clone());
+            //let mut block_env = Environment::full(environment.return_values(), self.closure.clone());
             block_env.user_func = interpreter.environment.user_func.clone();
             let current_interp = interpreter.environment.clone();
             let res = interpreter.execute_block(*body.clone(), Some(block_env));
@@ -103,15 +108,15 @@ impl UserDefined{
         }
     }
 
-    // pub fn bind(&mut self, instance: &Rc<LoxInstance>) -> UserDefined{
-    //     let mut environment = Environment::new(self.closure.clone());
-    //     environment.define(format!("this"), 0, 0, Some(Value::LoxInstance(instance.clone())));
-    //     return UserDefined {
-    //         name: self.name.clone(),
-    //         parameters: self.parameters.clone(),
-    //         body: self.body.clone(),
-    //         declaration: self.declaration.clone(),
-    //         closure: environment
-    //     }
-    // }
+    pub fn bind(&mut self, instance: &Rc<LoxInstance>) -> UserDefined{
+        let mut environment = Environment::new(self.closure.clone());
+        environment.define(format!("this"), 0, 0, Some(Value::LoxInstance(instance.clone())));
+        return UserDefined {
+            name: self.name.clone(),
+            parameters: self.parameters.clone(),
+            body: self.body.clone(),
+            declaration: self.declaration.clone(),
+            closure: environment
+        }
+    }
 }

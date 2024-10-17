@@ -1,6 +1,7 @@
 class Bacon {
-  eat(x) {
-    print x + " go crunch crunch crunch!";
+  eat() {
+    //print "HERRRRRRRRRRRRRRRRRRRRE";
+    print this.int + " go crunch crunch crunch!";
     print "Crunch cruch cruch";
     return;
   }
@@ -17,12 +18,12 @@ print 123;
 var x = Bacon();
 print x;
 x.int = "I";
-y.exa = "You";
-print y.exa;
+y.int = "You";
+print y.int;
 print x.int;
-x.eat(x.int);
-y.eat(x.int);
-x.eat(y.exa);
+x.eat();
+y.eat();
+x.eat();
 x.num = 123;
 x.num = x.add(x.num);
 print x.num;

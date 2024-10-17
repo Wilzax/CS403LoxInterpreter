@@ -510,7 +510,7 @@ impl Interpreter{
 
     fn visit_this_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::This { keyword } = expr.clone(){
-            return self.lookup_variable(String::from_utf8(keyword.lexeme.clone()).unwrap(), Expr::Variable { name: String::from_utf8(keyword.lexeme.clone()).unwrap(), line: 0, col: 0 });
+            return self.lookup_variable(String::from_utf8(keyword.lexeme.clone()).unwrap(), expr);
         }
         else{
             panic!("Unreachable This Error");

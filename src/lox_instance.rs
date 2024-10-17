@@ -35,7 +35,7 @@ impl LoxInstance{
             None => {
                 let method = self.klass.find_method(name.clone());
                 match method{
-                    Ok(mut ret_method) => return Ok(Value::UserDefined(ret_method)),
+                    Ok(mut ret_method) => return Ok(Value::UserDefined(ret_method.bind(self))),
                     Err(err) => return Err(InterpreterError::new(
                                     format!("Undefined property '{}'", name),
                                     0,
