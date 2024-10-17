@@ -17,24 +17,24 @@ fn main() {
     //scanner::run("class Bagel{}\nvar bag = Bagel();\nbag.name = 4;\nprint bag.name;".to_string());
     //scanner::run("var hi = 2; hi = 10; print hi;".to_string());
     //scanner::run("for (var i = 0; i < 10; i = i + 1)\n{{print i;}}".to_string());
-     scanner::run("class Bacon {
-  eat() {
-    print this.int + \" go crunch crunch crunch!\";
-    return x;
-  }
-}
+//      scanner::run("class Bacon {
+//   eat() {
+//     print this.int + \" go crunch crunch crunch!\";
+//     return x;
+//   }
+// }
 
-var y = Bacon();
-print y;
+// var y = Bacon();
+// print y;
 
-print 123;
+// print 123;
 
-var x = Bacon();
-print x;
-x.int = \"I\";
-x.howdythere = 10;
-print x.int;
-x.eat();".to_string());
+// var x = Bacon();
+// print x;
+// x.int = \"I\";
+// x.howdythere = 10;
+// print x.int;
+// x.eat();".to_string());
     
     
     

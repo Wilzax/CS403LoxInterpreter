@@ -52,7 +52,8 @@ pub enum Expr {
         value: Box<Expr>
     },
     This{
-        keyword: Token
+        //THIS MAY BE BAD
+        keyword: String
     },
     None
 }

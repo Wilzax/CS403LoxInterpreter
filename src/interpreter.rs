@@ -194,7 +194,8 @@ impl Interpreter{
                     parameters: parameters,
                     body: *body,
                     declaration: stmt.clone(),
-                    closure: self.environment.clone()
+                    closure: self.environment.clone(),
+                    is_init: false
                 };
                 let function = Value::UserDefined(function_inside.clone());
                 self.environment.define(name.clone(), 0, 0, Some(function));
@@ -510,7 +511,7 @@ impl Interpreter{
 
     fn visit_this_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::This { keyword } = expr.clone(){
-            return self.lookup_variable(String::from_utf8(keyword.lexeme.clone()).unwrap(), expr);
+            return self.lookup_variable(keyword, expr);
         }
         else{
             panic!("Unreachable This Error");
@@ -759,7 +760,8 @@ impl Interpreter{
                         parameters: parameters,
                         body: *body,
                         declaration: method.clone(),
-                        closure: self.environment.clone()
+                        closure: self.environment.clone(),
+                        is_init: name.clone().eq(&format!("init"))
                     };
                     method_hash.insert(name, insert_method);
                 }

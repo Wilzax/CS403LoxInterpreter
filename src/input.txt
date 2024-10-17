@@ -1,38 +1,17 @@
-class Bacon {
-  eat() {
-    //print "HERRRRRRRRRRRRRRRRRRRRE";
-    print this.int + " go crunch crunch crunch!";
-    print "Crunch cruch cruch";
+class Circle{
+  init(radius){
+    this.radius = radius;
+    this.area = this.area();
     return;
   }
-  add(y) {
-    return y + 100;
+
+  area() {
+    return 3.141592654 * this.radius * this.radius;
   }
 }
 
-var y = Bacon();
-print y;
-
-print 123;
-
-var x = Bacon();
-print x;
-x.int = "I";
-y.int = "You";
-print y.int;
-print x.int;
-x.eat();
-y.eat();
-x.eat();
-x.num = 123;
-x.num = x.add(x.num);
-print x.num;
-
-/*
-fun eat(x) {
-  print x;
-}
-
-var y = 12;
-eat(y);
-*/
+var circle = Circle(4);
+print "------------------------------------";
+print circle.radius; //Prints 4
+print circle.area; //Prints ~50.2655
+print "------------------------------------";

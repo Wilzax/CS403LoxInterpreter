@@ -533,7 +533,7 @@ impl Parser{
             }
         }
         if self.matches(vec![TokenType::This]){
-            return Ok(Expr::This { keyword: self.previous() })
+            return Ok(Expr::This { keyword: String::from_utf8(self.previous().lexeme).unwrap() })
         }
         if self.matches(vec![TokenType::Identifier]){
             //println!("IN HERE");

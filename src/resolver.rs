@@ -88,7 +88,12 @@ impl Resolver{
                 self.declare(name.clone());
                 self.define(name);
                 for method in *methods{
-                    let declaration = FunctionState::Method;
+                    let mut declaration = FunctionState::Method;
+                    if let Stmt::Function { name, parameters, body } = method.clone(){
+                        if name.eq(&format!("init")){
+                            declaration = FunctionState::Init
+                        }
+                    }
                     self.resolve_function(method, declaration);
                 }
                 self.end_scope();
@@ -117,6 +122,9 @@ impl Resolver{
                     self.errors.push(format!("Illegal return statement"));
                 }
                 if let Some(value) = value{
+                    if self.state.function == FunctionState::Init{
+                        self.errors.push(format!("Can't return a value from an initializer"));
+                    }
                     self.resolve_expr(value);
                 }
             }
@@ -174,7 +182,7 @@ impl Resolver{
                     self.errors.push(format!("Can't use 'this' outside of class."));
                     return ();
                 }
-                self.resolve_local(String::from_utf8(keyword.lexeme).unwrap(), expr);
+                self.resolve_local(keyword, expr);
             }
             Expr::Unary { operator: _ , right, line: _ , col: _ } => {
                 self.resolve_expr(*right);
