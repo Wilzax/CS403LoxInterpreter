@@ -34,6 +34,7 @@ pub struct UserDefined{
 #[derive(Debug, Clone, PartialEq)]
 pub struct LoxClass{
     pub name: String,
+    pub superclass: Box<Option<LoxClass>>,
     pub methods: HashMap<String, UserDefined>
 }
 
@@ -48,9 +49,6 @@ impl LoxClass{
             Ok(init_method) => return init_method.arity(),
             Err(none) => return 0
         }
-        
-        
-        return 0;
     }
 
     pub fn call(&self, interpreter: &mut Interpreter, args: &Vec<Value>) -> Result<Value, InterpreterError>{
@@ -84,7 +82,17 @@ impl LoxClass{
     pub fn find_method(&self, name: String) -> Result<UserDefined, ()>{
         match self.methods.get(&name){
             Some(method) => return Ok(method.clone()),
+            None => ()//return Err(())
+        }
+        match *self.superclass.clone(){
+            Some(super_class) => return super_class.find_method(name),
             None => return Err(())
+            // None => return Err(InterpreterError::new(
+            //     format!("Can't find method {}", name), 
+            //     0, 
+            //     0, 
+            //     Value::Nil
+            // ))
         }
     }
 }

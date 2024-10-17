@@ -29,7 +29,8 @@ declaration    → classDecl
                | varDecl
                | statement ;
 
-classDecl      → "class" IDENTIFIER "{" function* "}" ;
+classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )?
+                 "{" function* "}" ;
 funDecl        → "fun" function ;
 function       → IDENTIFIER "(" parameters? ")" block ;
 parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -102,6 +103,11 @@ impl Parser{
 
     fn class_declaration(&mut self) -> Result<Stmt, ParserError>{
         let name = self.consume(TokenType::Identifier, format!("Expect class name"))?;
+        let mut superclass: Option<Expr> = None;
+        if self.matches(vec![TokenType::Less]){
+            let sup = self.consume(TokenType::Identifier, format!("Expect superclass name"))?;
+            superclass = Some(Expr::Variable { name:String::from_utf8(sup.lexeme).unwrap(), line: sup.line, col: sup.column })
+        }
         self.consume(TokenType::LeftBrace, format!("Expect '{{' before class body"))?;
         let mut methods: Vec<Stmt> = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_at_end(){
@@ -110,7 +116,7 @@ impl Parser{
         self.consume(TokenType::RightBrace, format!("Expect '}}' after class body"))?;
         return Ok(Stmt::Class { 
             name: String::from_utf8(name.lexeme).unwrap(), 
-            superclass: None, 
+            superclass: superclass, 
             methods: Box::new(methods) 
         })
     }

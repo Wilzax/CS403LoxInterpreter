@@ -750,6 +750,26 @@ impl Interpreter{
 
     fn visit_class_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Class { name, superclass, methods } = stmt{
+            let mut class_super: Value;
+            let mut insert_class_super: Option<LoxClass>;
+            match superclass{
+                Some(sup) =>{
+                    class_super = self.evaluate(sup)?;
+                    if let Value::LoxClass(klas) = class_super{
+                        insert_class_super = Some(klas);
+                    }
+                    else{
+                        return Err(InterpreterError { 
+                            error_message: format!("Superclass must be a class"), 
+                            line: 0, 
+                            column: 0, 
+                            value: Value::Nil  
+                        })
+                    }
+                }
+                None => insert_class_super = None
+            }
+            
             self.environment.define(name.clone(), 0, 0, None);
             let mut method_hash: HashMap<String, UserDefined> = HashMap::new();
             let method_vec = *methods;
@@ -766,7 +786,7 @@ impl Interpreter{
                     method_hash.insert(name, insert_method);
                 }
             } 
-            let klass: LoxClass = LoxClass { name: name.clone(), methods: method_hash };
+            let klass: LoxClass = LoxClass { name: name.clone(),superclass: Box::new(insert_class_super), methods: method_hash };
             self.environment.assign(name.clone(), 0, 0, &Value::LoxClass(klass.clone()))?;
             self.environment.classes.insert(name.clone(), klass.clone());
             self.globals.classes.insert(name.clone(), klass.clone());

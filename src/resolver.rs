@@ -76,7 +76,7 @@ impl Resolver{
                 self.resolve_vec_stmt(statements);
                 self.end_scope();
             }
-            Stmt::Class { name, superclass: _ , methods } => {
+            Stmt::Class { name, superclass , methods } => {
                 let enclosing_class = self.current_class;
                 self.begin_scope();
                 self.current_class = ClassState::Class;
@@ -86,7 +86,19 @@ impl Resolver{
                     None => return ()
                 };
                 self.declare(name.clone());
-                self.define(name);
+                self.define(name.clone());
+                let class_name = name.clone();
+                match superclass{
+                    Some(sup) => {
+                        if let Expr::Variable { name, line: _ , col: _ } = sup.clone(){
+                            if name.eq(&class_name){
+                                self.errors.push(format!("A class can't inherit from itself."));
+                            }
+                            self.resolve_expr(sup);
+                        }
+                    }
+                    None => ()
+                }
                 for method in *methods{
                     let mut declaration = FunctionState::Method;
                     if let Stmt::Function { name, parameters, body } = method.clone(){
