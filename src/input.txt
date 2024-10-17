@@ -1,9 +1,37 @@
-fun fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 2) + fib(n - 1);
+class Bacon {
+  eat(x) {
+    print x + " go crunch crunch crunch!";
+    print "Crunch cruch cruch";
+    return;
+  }
+  add(y) {
+    return y + 100;
+  }
 }
 
+var y = Bacon();
+print y;
 
-for (var i = 0; i < 10; i = i + 1){
-  print fib(i);
+print 123;
+
+var x = Bacon();
+print x;
+x.int = "I";
+y.exa = "You";
+print y.exa;
+print x.int;
+x.eat(x.int);
+y.eat(x.int);
+x.eat(y.exa);
+x.num = 123;
+x.num = x.add(x.num);
+print x.num;
+
+/*
+fun eat(x) {
+  print x;
 }
+
+var y = 12;
+eat(y);
+*/

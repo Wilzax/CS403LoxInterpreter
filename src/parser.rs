@@ -24,10 +24,12 @@ impl Default for Parser{
 Current Parser Grammer:
 program        → statement* EOF ;
 
-declaration    → funDecl
+declaration    → classDecl
+               | funDecl
                | varDecl
                | statement ;
 
+classDecl      → "class" IDENTIFIER "{" function* "}" ;
 funDecl        → "fun" function ;
 function       → IDENTIFIER "(" parameters? ")" block ;
 parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -54,7 +56,7 @@ ifStmt         → "if" "(" expression ")" statement ( "else" statement )? ;
 printStmt      → "print" expression ";" ;
 varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 expression     → assignment ;
-assignment     → IDENTIFIER "=" assignment
+assignment     → ( call "." )? IDENTIFIER "=" assignment
                | logic_or ;
 logic_or       → logic_and ( "or" logic_and )* ;
 logic_and      → equality ( "and" equality )* ;
@@ -92,7 +94,25 @@ impl Parser{
         if self.matches(vec![TokenType::Fun]){
             return self.function(format!("function"));
         }
+        if self.matches(vec![TokenType::Class]){
+            return self.class_declaration();
+        }
         return self.statement();
+    }
+
+    fn class_declaration(&mut self) -> Result<Stmt, ParserError>{
+        let name = self.consume(TokenType::Identifier, format!("Expect class name"))?;
+        self.consume(TokenType::LeftBrace, format!("Expect '{{' before class body"))?;
+        let mut methods: Vec<Stmt> = Vec::new();
+        while !self.check(TokenType::RightBrace) && !self.is_at_end(){
+            methods.push(self.function(format!("method"))?);
+        }
+        self.consume(TokenType::RightBrace, format!("Expect '}}' after class body"))?;
+        return Ok(Stmt::Class { 
+            name: String::from_utf8(name.lexeme).unwrap(), 
+            superclass: None, 
+            methods: Box::new(methods) 
+        })
     }
 
     fn function(&mut self, kind: String) -> Result<Stmt, ParserError>{
@@ -283,6 +303,14 @@ impl Parser{
                     value: Box::new(value) 
                 })
             }
+            else if let Expr::Get { object, name } = expr.clone(){
+                println!("HERE");
+                return Ok(Expr::Set { 
+                    object: object, 
+                    name: name, 
+                    value: Box::new(value) 
+                })
+            }
             return Err(ParserError { 
                 message: format!("Invalid assignment target at line: {}, column: {}",
                 equals.line, equals.column), 
@@ -419,6 +447,10 @@ impl Parser{
             if self.matches(vec![TokenType::LeftParen]){
                 expr = self.finish_call(expr)?;
             }
+            else if self.matches(vec![TokenType::Dot]){
+                let name = self.consume(TokenType::Identifier, format!("Expect property name after '.'"))?;
+                expr = Expr::Get { object: Box::new(expr), name: String::from_utf8(name.lexeme).unwrap()  }
+            }
             else{
                 break;
             }
@@ -499,6 +531,9 @@ impl Parser{
                 Ok(token) => return Ok(Expr::Grouping { expression: Box::new(expr)}),
                 Err(err) => return Err(err)
             }
+        }
+        if self.matches(vec![TokenType::This]){
+            return Ok(Expr::This { keyword: self.previous() })
         }
         if self.matches(vec![TokenType::Identifier]){
             //println!("IN HERE");

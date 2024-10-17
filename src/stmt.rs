@@ -35,5 +35,10 @@ pub enum Stmt {
     Return{
         keyword: Token,
         value: Option<Expr>
+    },
+    Class{
+        name: String,
+        superclass: Option<Expr>,
+        methods: Box<Vec<Stmt>>
     }
 }

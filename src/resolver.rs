@@ -11,7 +11,8 @@ pub struct Resolver{
     pub interpreter: Interpreter,
     pub scopes: Vec<HashMap<String, bool>>,
     pub errors: Vec<String>,
-    pub state: ResolverState
+    pub state: ResolverState,
+    pub current_class: ClassState
 }
 
 #[derive(Debug)]
@@ -35,13 +36,20 @@ pub enum FunctionState{
     None
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ClassState{
+    Class,
+    None
+}
+
 impl Resolver{
     pub fn new(interpreter: Interpreter) -> Self{
         Resolver { 
             interpreter: interpreter,
             scopes: Vec::new(),
             errors: Vec::new(),
-            state: ResolverState::default()
+            state: ResolverState::default(),
+            current_class: ClassState::None
         }
     }
 
@@ -67,6 +75,24 @@ impl Resolver{
                 self.begin_scope();
                 self.resolve_vec_stmt(statements);
                 self.end_scope();
+            }
+            Stmt::Class { name, superclass: _ , methods } => {
+                //let enclosing_class = self.current_class;
+                self.begin_scope();
+                //self.current_class = ClassState::Class;
+                let x = self.scopes.last_mut();
+                match x{
+                    Some(scop) => scop.insert(format!("this"), true),
+                    None => return ()
+                };
+                self.declare(name.clone());
+                self.define(name);
+                for method in *methods{
+                    let declaration = FunctionState::Method;
+                    self.resolve_function(method, declaration);
+                }
+                self.end_scope();
+                //self.current_class = enclosing_class;
             }
             Stmt::Expr { expression } => {
                 self.resolve_expr(*expression);
@@ -126,6 +152,9 @@ impl Resolver{
                     self.resolve_expr(arg);
                 }
             }
+            Expr::Get { object, name } => {
+                self.resolve_expr(*object);
+            }
             Expr::Grouping { expression } => {
                 self.resolve_expr(*expression);
             }
@@ -135,6 +164,17 @@ impl Resolver{
             Expr::Logical { left, operator: _ , right } => {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
+            }
+            Expr::Set { object, name: _ , value } => {
+                self.resolve_expr(*object);
+                self.resolve_expr(*value);
+            }
+            Expr::This { keyword } => {
+                if self.current_class == ClassState::None{
+                    self.errors.push(format!("Can't use 'this' outside of class."));
+                    return ();
+                }
+                self.resolve_local(String::from_utf8(keyword.lexeme).unwrap(), expr);
             }
             Expr::Unary { operator: _ , right, line: _ , col: _ } => {
                 self.resolve_expr(*right);
@@ -218,5 +258,16 @@ impl Resolver{
 
     fn end_scope(&mut self) -> (){
         self.scopes.pop();
+    }
+
+
+    #[inline]
+    fn scoped<I>(&mut self, inner: I)
+    where I: FnOnce(&mut Self),
+    {
+        self.begin_scope();
+        let res = inner(self);
+        self.end_scope();
+        res
     }
 }

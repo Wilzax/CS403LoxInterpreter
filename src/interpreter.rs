@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::env;
 use std::fmt::format;
+use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::environment::*;
 use crate::lox_callable::*;
+use crate::lox_instance::LoxInstance;
 use crate::scanner;
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr::{self, BinaryOpType, UnaryOpType}; //Did not want to type scanner::Token 8000 times
@@ -19,6 +21,8 @@ pub enum Value{
     Bool(bool),
     UserDefined(UserDefined),
     NativeFunction(NativeFunction),
+    LoxClass(LoxClass),
+    LoxInstance(Rc<LoxInstance>),
     Nil,
 }
 
@@ -29,6 +33,8 @@ pub enum Type{
     Bool,
     UserDefined,
     NativeFunction,
+    LoxClass,
+    LoxInstance,
     Nil
 }
 impl Value{
@@ -39,6 +45,8 @@ impl Value{
             Value::Bool(_) => Type::Bool,
             Value::UserDefined(_) => Type::UserDefined,
             Value::NativeFunction(_) => Type::NativeFunction,
+            Value::LoxClass(_) => Type::LoxClass,
+            Value::LoxInstance(_) => Type::LoxInstance,
             Value::Nil => Type::Nil
             
         }
@@ -51,6 +59,8 @@ impl Value{
             Value::Bool(bool) => format!("{}", bool),
             Value::NativeFunction(nat) => format!("{}", nat.name),
             Value::UserDefined(user) => format!("{}", user.name),
+            Value::LoxClass(class) => format!("{}", class.name),
+            Value::LoxInstance(inst) => format!("{} instance", inst.klass.name),
             Value::Nil => format!("nil")
         }
     }
@@ -64,6 +74,8 @@ impl Type{
             Type::Bool => format!("Bool"),
             Type::NativeFunction => format!("Native Function"),
             Type::UserDefined => format!("User Defined Function"),
+            Type::LoxClass => format!("User Defined Class"),
+            Type::LoxInstance => format!("User Defined Class Instance"),
             Type::Nil => format!("Nil")
         }
     }
@@ -76,7 +88,9 @@ pub struct Interpreter{
     pub globals: Environment,
     pub environment: Environment,
     pub return_value: Option<Value>,
-    pub locals: HashMap<String, (Expr, usize)>
+    pub locals: HashMap<String, (Expr, usize)>,
+    pub classes: HashMap<String, LoxClass>,
+    pub instances: HashMap<String, LoxInstance>,
 }
 
 impl Default for Interpreter{
@@ -113,7 +127,9 @@ impl Default for Interpreter{
             globals: globals.clone(), 
             environment: globals,
             return_value: None,
-            locals: HashMap::new()
+            locals: HashMap::new(),
+            classes: HashMap::new(),
+            instances: HashMap::new()
         }   
     }
 }
@@ -265,6 +281,10 @@ impl Interpreter{
 
     fn visit_return_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Return { keyword, value } = stmt{
+            match value.clone(){
+                Some(ret) => (),
+                None => return Err(InterpreterError::new(format!("RETURN"), 0, 0, Value::Nil))
+            }
             let retval = self.evaluate(value.unwrap());
             match retval{
                 Ok(val) => Err(InterpreterError::new(format!("RETURN"), 0, 0, val)),
@@ -444,12 +464,30 @@ impl Interpreter{
                         })
                     }
                     else{
-                        //println!("User func call");
+                        println!("User func call {}", args.len());
                         //let current_interp = self.environment.enclosing.clone();
                         let func =  function.call(self, &args);
                         //self.environment.enclosing = current_interp;
                         match func{
                             Ok(func) => return Ok(func),
+                            Err(err) => return Err(err)
+                        }
+                    }
+                }
+                Value::LoxClass(class) =>{
+                    if args.len() != class.arity() {
+                        return Err(InterpreterError { 
+                            error_message: format!("Expected {} arguments but got {}",
+                            class.arity(), args.len()), 
+                            line: 0, 
+                            column: 0,
+                            value: Value::Nil 
+                        })
+                    }
+                    else{
+                        let klas = class.call(self, &args);
+                        match klas{
+                            Ok(klas) => return Ok(klas),
                             Err(err) => return Err(err)
                         }
                     }
@@ -467,6 +505,74 @@ impl Interpreter{
         }
         else{
             panic!("Unreachable Call Error");
+        }
+    }
+
+    fn visit_this_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::This { keyword } = expr.clone(){
+            return self.lookup_variable(String::from_utf8(keyword.lexeme.clone()).unwrap(), Expr::Variable { name: String::from_utf8(keyword.lexeme.clone()).unwrap(), line: 0, col: 0 });
+        }
+        else{
+            panic!("Unreachable This Error");
+        }
+    }
+
+    fn visit_get_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Get { object, name } = expr{
+            let value = self.evaluate(*object)?;
+            let inst = Self::ensure_instance(value)?;
+            return Ok(inst.get(name))?;
+            // if let Value::LoxInstance(val) = value{
+            //     return Ok(val.)?;
+            // }
+            // else{
+            //     return Err(InterpreterError { 
+            //         error_message: format!("Only objects have properties"), 
+            //         line: 0, 
+            //         column: 0, 
+            //         value: value 
+            //     })
+            // }
+        }
+        else{
+            panic!("Unreachable Get Error");
+        }
+    }
+
+    fn visit_set_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Set { object, name, value } = expr{
+            println!("Inside Set");
+            let old_value = self.evaluate(*object)?;
+            println!("Even farther");
+            let mut instance = Interpreter::ensure_instance(old_value.clone())?;
+            //let new_val = self.evaluate(*value)?;
+            //instance.set(name.clone(), new_val.clone());
+            //self.environment.instances.insert(name.clone(), instance);
+            //return Ok(new_val)
+            //if let Value::LoxInstance( val) = old_value{
+                println!("Eeeeeeven farther");
+                let new_val = self.evaluate(*value)?;
+                println!("The farthest");
+                instance.set(name, new_val.clone());
+                return Ok(new_val);
+            //}
+        }
+        else{
+            panic!("Unreachable Set Error");
+        }
+    }
+
+    fn ensure_instance(val: Value) -> Result<Rc<LoxInstance>, InterpreterError>{
+        if let Value::LoxInstance(inst) = val{
+            Ok(inst)
+        }
+        else{
+            return Err(InterpreterError { 
+                error_message: format!("Only objects have properties"), 
+                line: 0, 
+                column: 0, 
+                value: Value::Nil 
+            })
         }
     }
 
@@ -545,6 +651,15 @@ impl Interpreter{
         else if let Expr::Call { callee: _ , paren: _ , arguments: _ } = expr{
             return Ok(self.visit_call_expr(expr))?;
         }
+        else if let Expr::Get { object: _ , name: _ } = expr{
+            return Ok(self.visit_get_expr(expr))?;
+        }
+        else if let Expr::Set { object: _ , name: _ , value: _ } = expr{
+            return Ok(self.visit_set_expr(expr))?;
+        }
+        else if let Expr::This { keyword: _ } = expr{
+            return Ok(self.visit_this_expr(expr))?;
+        }
         else{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
@@ -581,6 +696,9 @@ impl Interpreter{
         }
         else if let Stmt::Return { keyword: _ , value: _ } = stmt{
             return Ok(self.visit_return_stmt(stmt))?;
+        }
+        else if let Stmt::Class { name: _ , superclass: _ , methods: _ } = stmt{
+            return Ok(self.visit_class_stmt(stmt))?;
         }
         else{
             //println!("Kys");
@@ -629,6 +747,34 @@ impl Interpreter{
         }
     }
 
+    fn visit_class_stmt(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
+        if let Stmt::Class { name, superclass, methods } = stmt{
+            self.environment.define(name.clone(), 0, 0, None);
+            let mut method_hash: HashMap<String, UserDefined> = HashMap::new();
+            let method_vec = *methods;
+            for method in method_vec{
+                if let Stmt::Function { name, parameters, body } = method.clone(){
+                    let insert_method = UserDefined {
+                        name: name.clone(),
+                        parameters: parameters,
+                        body: *body,
+                        declaration: method.clone(),
+                        closure: self.environment.clone()
+                    };
+                    method_hash.insert(name, insert_method);
+                }
+            } 
+            let klass: LoxClass = LoxClass { name: name.clone(), methods: method_hash };
+            self.environment.assign(name.clone(), 0, 0, &Value::LoxClass(klass.clone()))?;
+            self.environment.classes.insert(name.clone(), klass.clone());
+            self.globals.classes.insert(name.clone(), klass.clone());
+            return Ok(());
+        }
+        else{
+            panic!("Unreachable class error");
+        }
+    }
+
     pub fn resolve_local(&mut self, name: String, depth: usize, expr: Expr) -> (){
         self.locals.insert(name, (expr, depth));
     }
@@ -640,6 +786,13 @@ impl Interpreter{
         else{
             return Ok(self.globals.get(&expr))?;
         }
+    }
+
+    pub fn create_instance(&mut self, class: LoxClass) -> Value{
+        let inst = LoxInstance::new(class);
+        self.environment.instances.insert(format!("Test"), inst.clone());
+        //POSSIBLE ISSUE
+        return Value::LoxInstance(Rc::new(inst.clone()));
     }
 }
 

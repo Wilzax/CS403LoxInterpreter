@@ -5,12 +5,15 @@ use crate::lox_callable::*;
 use crate::expr::{Expr}; 
 use crate::interpreter::{InterpreterError, Value};
 use crate::scanner::{Token, TokenType};
+use crate::lox_instance::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Environment{
     pub values: HashMap<String, (Option<Value>, VarLocation)>,
     pub enclosing: Option<Box<Environment>>,
-    pub user_func: HashMap<String, UserDefined>
+    pub user_func: HashMap<String, UserDefined>,
+    pub classes: HashMap<String, LoxClass>,
+    pub instances: HashMap<String, LoxInstance>,
 }
 
 impl Default for Environment{
@@ -18,7 +21,9 @@ impl Default for Environment{
         Environment{
             values: HashMap::new(),
             enclosing: None,
-            user_func: HashMap::new()
+            user_func: HashMap::new(),
+            classes: HashMap::new(),
+            instances: HashMap::new(),
         }
     }
 }
@@ -44,7 +49,9 @@ impl Environment{
         Environment{
             values: HashMap::new(),
             enclosing: Some(Box::new(enclosing)),
-            user_func: HashMap::new()
+            user_func: HashMap::new(),
+            classes: HashMap::new(),
+            instances: HashMap::new()
         }
     }
 
@@ -52,7 +59,9 @@ impl Environment{
         Environment{
             values: vals,
             enclosing: Some(Box::new(enclosing.clone())),
-            user_func: enclosing.user_func
+            user_func: enclosing.user_func,
+            classes: enclosing.classes,
+            instances: enclosing.instances
         }
     }
 
@@ -185,7 +194,11 @@ impl Environment{
                 None => {
                     match self.user_func.get(name){
                         Some(func) => LookupResult::Ok(Value::UserDefined(func.clone())),
-                        None => LookupResult::UndefinedAndUndeclared
+                        None => match self.classes.get(name){
+                            Some(class) => LookupResult::Ok(Value::LoxClass(class.clone())),
+                            None => LookupResult::UndefinedAndUndeclared
+                        }
+                        //None => LookupResult::UndefinedAndUndeclared
                     }
                 }
             }
@@ -201,11 +214,11 @@ impl Environment{
     pub fn get_at(&mut self, distance: usize, expr: Expr) -> Result<Value, InterpreterError>{
         return self.get(&expr);
     }
-    pub fn ancestor(&mut self, distance: usize) -> Environment{
+    pub fn ancestor(&self, distance: usize) -> Environment{
         let mut current: Environment = self.clone();
         for _ in 0..distance{
             //println!("Maybe {}", distance);
-            current = *current.enclosing.unwrap().clone();
+            current = *current.enclosing.unwrap();
             // match maybe_enclosing{
             //     Some(enc) => current = *enc,
             //     None => return current,
