@@ -10,6 +10,7 @@ mod lox_instance;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
+use std::io::{self, Write};
 
 fn main() {
     println!("");
@@ -46,7 +47,7 @@ fn main() {
     println!("Detected {} main arguments", args.len());
     if args.len() < 2 {
         println!("No file supplied, starting in interactive mode...");
-        dbg!(args);
+        interactive_mode(); 
     } 
     else {
         let file_path = &args[1];
@@ -67,6 +68,28 @@ fn main() {
             Err(error) => panic!("Problem reading the file: {error:?}"),
         };
     }
+
+    fn interactive_mode() {
+        println!("Welcome to the Lox interpreter! Type 'exit' to quit.");
+        
+        let mut accumulated_input = String::new(); // Accumulator for inputs
+        
+        loop {
+            print!("> ");
+            io::stdout().flush().unwrap();
+    
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+    
+            if input.trim() == "exit" {
+                break;
+            }
+    
+            accumulated_input.push_str(&input);
+            
+            scanner::run(accumulated_input.clone());
+        }
+    } 
 
     println!("Thus ends the program.");
 }
