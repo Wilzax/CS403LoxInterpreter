@@ -556,6 +556,12 @@ impl Parser{
                 None => panic!("Found no literal when parsing Identifier")
             }
         }
+        if self.matches(vec![TokenType::Super]){
+            let keyword: String = String::from_utf8(self.previous().lexeme).unwrap();
+            self.consume(TokenType::Dot, format!("Expect '.' after 'super'"))?;
+            let method: Token = self.consume(TokenType::Identifier, format!("Expect superclass method name"))?;
+            return Ok(Expr::Super { keyword: keyword, method: String::from_utf8(method.lexeme).unwrap() })
+        }
         Err(ParserError {
             message: format!("Expected expression at line: {}, column{}",
             self.peek().line, self.peek().column), 

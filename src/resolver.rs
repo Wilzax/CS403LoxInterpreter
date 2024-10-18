@@ -39,6 +39,7 @@ pub enum FunctionState{
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ClassState{
     Class,
+    SubClass,
     None
 }
 
@@ -88,8 +89,10 @@ impl Resolver{
                 self.declare(name.clone());
                 self.define(name.clone());
                 let class_name = name.clone();
+                let mut is_super = false;
                 match superclass{
                     Some(sup) => {
+                        is_super = true;
                         if let Expr::Variable { name, line: _ , col: _ } = sup.clone(){
                             if name.eq(&class_name){
                                 self.errors.push(format!("A class can't inherit from itself."));
@@ -98,6 +101,14 @@ impl Resolver{
                         }
                     }
                     None => ()
+                }
+                if is_super{
+                    self.begin_scope();
+                    let x = self.scopes.last_mut();
+                    match x{
+                        Some(scop) => scop.insert(format!("super"), true),
+                        None => return ()
+                    };
                 }
                 for method in *methods{
                     let mut declaration = FunctionState::Method;
@@ -109,6 +120,9 @@ impl Resolver{
                     self.resolve_function(method, declaration);
                 }
                 self.end_scope();
+                if is_super{
+                    self.end_scope();
+                }
                 self.current_class = enclosing_class;
             }
             Stmt::Expr { expression } => {
@@ -188,6 +202,15 @@ impl Resolver{
             Expr::Set { object, name: _ , value } => {
                 self.resolve_expr(*object);
                 self.resolve_expr(*value);
+            }
+            Expr::Super { keyword, method: _ } => {
+                if self.current_class == ClassState::None{
+                    self.errors.push(format!("Can't use 'super' outside of a class"));
+                }
+                else if self.current_class != ClassState::SubClass{
+                    self.errors.push(format!("Can't use 'super' in a class with no superclass"));
+                }
+                self.resolve_local(keyword, expr);
             }
             Expr::This { keyword } => {
                 if self.current_class == ClassState::None{
