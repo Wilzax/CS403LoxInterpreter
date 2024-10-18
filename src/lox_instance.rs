@@ -49,7 +49,7 @@ impl LoxInstance{
 
     pub fn set(&self, name: String, value: Value) -> (){
         self.fields.borrow_mut().insert(name, value);
-        println!("insert");
+        //println!("insert");
     }
 
     pub fn to_string(&self) -> String{

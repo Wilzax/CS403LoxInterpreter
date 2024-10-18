@@ -1,0 +1,51 @@
+// Base class Animal
+class Animal {
+  init(name) {
+    this.name = name;
+  }
+
+  speak() {
+    print this.name + " makes a sound.";
+  }
+}
+
+// Derived class Dog
+class Dog < Animal {
+  init(name, breed) {
+    this.name = name;  // Directly setting name (instead of using super)
+    this.breed = breed;
+  }
+
+  speak() {
+    print this.name + " barks.";  // Overriding speak method
+  }
+
+  getBreed() {
+    return this.breed;
+  }
+}
+
+// Derived class Cat
+class Cat < Animal {
+  init(name, color) {
+    this.name = name;  // Directly setting name
+    this.color = color;
+  }
+
+  speak() {
+    print this.name + " meows.";  // Overriding speak method
+  }
+
+  getColor() {
+    return this.color;
+  }
+}
+
+// Main Program
+var dog = Dog("Buddy", "Golden Retriever");
+dog.speak();      // Output: Buddy barks.
+print dog.getBreed();  // Output: Golden Retriever
+
+var cat = Cat("Whiskers", "Black");
+cat.speak();      // Output: Whiskers meows.
+print cat.getColor();  // Output: Black

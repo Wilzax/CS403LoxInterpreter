@@ -97,7 +97,6 @@ impl Environment{
                 }
             )
         );
-        //println!("I AM GOING TO KILL MYSELF {}, {}", line, col);
         return ()
     }
 

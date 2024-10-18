@@ -310,7 +310,7 @@ impl Parser{
                 })
             }
             else if let Expr::Get { object, name } = expr.clone(){
-                println!("HERE");
+                //println!("HERE");
                 return Ok(Expr::Set { 
                     object: object, 
                     name: name, 
@@ -325,7 +325,6 @@ impl Parser{
                 column: equals.column 
             })
         }
-        //println!("Freak off");
         return Ok(expr);    
     }
 

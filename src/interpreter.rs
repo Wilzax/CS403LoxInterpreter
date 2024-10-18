@@ -149,7 +149,6 @@ impl Interpreter{
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<(), InterpreterError>{
         //let mut interp: Interpreter = Interpreter::new(statements.clone());
-        //println!("We interpreting");
         for stmt in statements{
             let execution: Result<(), InterpreterError> = self.execute(stmt);
             match execution{
@@ -188,7 +187,6 @@ impl Interpreter{
                 })
             }
             else{
-                //println!("Func def");
                 let function_inside = UserDefined{
                     name: name.clone(),
                     parameters: parameters,
@@ -201,7 +199,6 @@ impl Interpreter{
                 self.environment.define(name.clone(), 0, 0, Some(function));
                 self.environment.user_func.insert(name.clone(), function_inside.clone());
                 self.globals.user_func.insert(name.clone(), function_inside);
-                //println!("Func def finish");
                 return Ok(())
             }
         }
@@ -303,13 +300,11 @@ impl Interpreter{
             //let expression = self.environment.assign(name, line, column, &val.clone());
 
             let expression: Result<(), InterpreterError>;
-            //println!("No");
             if let Some(result) = self.locals.get(&name){
                 //println!("Checking for {} at depth {}", name.clone(), result.1.clone());
                 expression = self.environment.assign_at(name, line, column, &val, result.1);
             }
             else{
-                //println!("Will commit suicide for cash");
                 expression = self.globals.assign(name, line, column, &val);
             }
             
@@ -419,7 +414,6 @@ impl Interpreter{
 
     fn visit_call_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Call { callee , paren , arguments } = expr{
-            //println!("Callin");
             let callee_value: Value = self.evaluate(*callee)?;
 
             let argument_values: Result<Vec<Value>, InterpreterError> = arguments
@@ -465,7 +459,7 @@ impl Interpreter{
                         })
                     }
                     else{
-                        println!("User func call {}", args.len());
+                        //println!("User func call {}", args.len());
                         //let current_interp = self.environment.enclosing.clone();
                         let func =  function.call(self, &args);
                         //self.environment.enclosing = current_interp;
@@ -518,6 +512,15 @@ impl Interpreter{
         }
     }
 
+    fn visit_super_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
+        if let Expr::Super { keyword, method } = expr.clone(){
+            return Ok(Value::Nil)
+        }
+        else{
+            panic!("Unreachable Super Error");
+        }
+    }
+
     fn visit_get_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Get { object, name } = expr{
             let value = self.evaluate(*object)?;
@@ -542,18 +545,14 @@ impl Interpreter{
 
     fn visit_set_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Set { object, name, value } = expr{
-            println!("Inside Set");
             let old_value = self.evaluate(*object)?;
-            println!("Even farther");
             let mut instance = Interpreter::ensure_instance(old_value.clone())?;
             //let new_val = self.evaluate(*value)?;
             //instance.set(name.clone(), new_val.clone());
             //self.environment.instances.insert(name.clone(), instance);
             //return Ok(new_val)
             //if let Value::LoxInstance( val) = old_value{
-                println!("Eeeeeeven farther");
                 let new_val = self.evaluate(*value)?;
-                println!("The farthest");
                 instance.set(name, new_val.clone());
                 return Ok(new_val);
             //}
@@ -661,6 +660,9 @@ impl Interpreter{
         else if let Expr::This { keyword: _ } = expr{
             return Ok(self.visit_this_expr(expr))?;
         }
+        else if let Expr::Super { keyword: _ , method: _ } = expr{
+            return Ok(self.visit_super_expr(expr))?;
+        }
         else{
             return Err(InterpreterError { 
                 error_message: format!("We dont have that expression type yet bud"), 
@@ -673,11 +675,9 @@ impl Interpreter{
 
     pub fn execute(&mut self, stmt: Stmt) -> Result<(), InterpreterError>{
         if let Stmt::Expr { expression: _ } = stmt{
-            //println!("Aw shucks");
             return Ok(self.visit_expression_stmt(stmt)?);
         }
         else if let Stmt::Print { expression: _ } = stmt{
-            //println!("Yeppers");
             return Ok(self.visit_print_stmt(stmt))?;
         }
         else if let Stmt::Var { name: _, line: _ , column: _ , initializer: _ } = stmt{
@@ -702,7 +702,6 @@ impl Interpreter{
             return Ok(self.visit_class_stmt(stmt))?;
         }
         else{
-            //println!("Kys");
             return Err(InterpreterError { 
                 error_message: format!("We dont have that statement type yet bud"), 
                 line: 0, 
@@ -724,14 +723,12 @@ impl Interpreter{
                 Err(err) => return Err(err)
             }
         }
-        //println!("Problem after execute");
         if let Some(enclosing) = self.environment.enclosing.clone(){
             self.environment = *enclosing;
         }
         else{
             panic!("Unreachable hell");
         }
-        //println!("Post enclosing");
         return Ok(());
     }
 
@@ -752,8 +749,10 @@ impl Interpreter{
         if let Stmt::Class { name, superclass, methods } = stmt{
             let mut class_super: Value;
             let mut insert_class_super: Option<LoxClass>;
+            let mut is_super = false;
             match superclass{
                 Some(sup) =>{
+                    is_super = true;
                     class_super = self.evaluate(sup)?;
                     if let Value::LoxClass(klas) = class_super{
                         insert_class_super = Some(klas);
@@ -769,7 +768,10 @@ impl Interpreter{
                 }
                 None => insert_class_super = None
             }
-            
+            if is_super{
+                self.environment = Environment::new(self.environment.clone());
+                self.environment.define(format!("super"), 0, 0, Some(Value::LoxClass(insert_class_super.clone().unwrap())));
+            }
             self.environment.define(name.clone(), 0, 0, None);
             let mut method_hash: HashMap<String, UserDefined> = HashMap::new();
             let method_vec = *methods;
@@ -785,6 +787,9 @@ impl Interpreter{
                     };
                     method_hash.insert(name, insert_method);
                 }
+            }
+            if is_super{
+                //self.environment = *self.environment.enclosing.clone().unwrap();
             } 
             let klass: LoxClass = LoxClass { name: name.clone(),superclass: Box::new(insert_class_super), methods: method_hash };
             self.environment.assign(name.clone(), 0, 0, &Value::LoxClass(klass.clone()))?;
