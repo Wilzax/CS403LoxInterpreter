@@ -92,6 +92,7 @@ impl Resolver{
                 let mut is_super = false;
                 match superclass{
                     Some(sup) => {
+                        self.current_class = ClassState::SubClass;
                         is_super = true;
                         if let Expr::Variable { name, line: _ , col: _ } = sup.clone(){
                             if name.eq(&class_name){

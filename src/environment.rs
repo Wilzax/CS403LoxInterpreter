@@ -155,7 +155,18 @@ impl Environment{
             match self.val_lookup(&expr){
                 LookupResult::Ok(val) => Ok(val),
                 _ => Err(InterpreterError::new(
-                    format!("Fucked up 'this'"), 
+                    format!("Incorrect use of 'this'"), 
+                    0, 
+                    0, 
+                    Value::Nil
+                ))
+            }
+        }
+        else if let Expr::Super { keyword, method } = expr{
+            match self.val_lookup(&expr){
+                LookupResult::Ok(val) => Ok(val),
+                _ => Err(InterpreterError::new(
+                    format!("Incorrect use of 'super'"), 
                     0, 
                     0, 
                     Value::Nil
@@ -215,6 +226,19 @@ impl Environment{
         }
         else if let Expr::This { keyword } = expr{
             let name = format!("this");
+            match self.values.get(&name){
+                Some((maybe_val, var_location)) => match maybe_val{
+                    Some(val) => LookupResult::Ok(val.clone()),
+                    None => LookupResult::UndefinedButDeclared { 
+                        line: var_location.line, 
+                        col: var_location.col 
+                    },
+                },
+                None => LookupResult::UndefinedAndUndeclared
+            }
+        }
+        else if let Expr::Super { keyword, method } = expr{
+            let name = format!("super");
             match self.values.get(&name){
                 Some((maybe_val, var_location)) => match maybe_val{
                     Some(val) => LookupResult::Ok(val.clone()),

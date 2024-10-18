@@ -1,57 +1,29 @@
+// Define a simple function
+fun sayHello(name) {
+  print "Hello, " + name + "!";
+}
 
-class Circle{
-  init(radius){
-    this.radius = radius;
-    this.area = this.areaCalc();
-    return;
+// Call the function
+sayHello("Programmer");
+
+// Define a class
+class Animal {
+  init(type, sound) {
+    this.type = type;
+    this.sound = sound;
   }
 
-  areaCalc() {
-    return 3.141592654 * this.radius * this.radius;
-  }
-
-  mult(x, y) {
-    return x.radius * y.radius;
+  makeSound() {
+    print this.type + " says " + this.sound;
   }
 }
 
-var circle = Circle(4);
-var bigCircle = Circle(6);
-var comboCircle = Circle(1);
-comboCircle.radius = comboCircle.mult(circle, bigCircle);
-comboCircle.area = comboCircle.areaCalc();
-print "------------------------------------";
-print circle.radius; //Prints 4
-print bigCircle.radius;
-print circle.area; //Prints ~50.2655
-print bigCircle.area;
-print comboCircle.radius;
-print comboCircle.area;
-print "------------------------------------";
+// Create an object of the class
+var dog = Animal("Dog", "Woof");
 
-/*
-class Doughnut {
-  cook() {
-    print "Fry until golden brown.";
-  }
-}
+// Call a method on the object
+dog.makeSound();  // Output: Dog says Woof
 
-class BostonCream < Doughnut {
-  cook() {
-    super.cook();
-    print "Pipe full of custard and coat with chocolate.";
-  }
-}
-
-BostonCream().cook();
-*/
-
-class Doughnut {
-  cook() {
-    print "Fry until golden brown.";
-  }
-}
-
-class BostonCream < Doughnut {}
-class Pastry < BostonCream{}
-Pastry().cook();
+// Another object
+var cat = Animal("Cat", "Meow");
+cat.makeSound();  // Output: Cat says Meow

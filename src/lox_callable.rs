@@ -157,6 +157,14 @@ impl UserDefined{
     pub fn bind(&mut self, instance: &Rc<LoxInstance>) -> UserDefined{
         let mut environment = Environment::new(self.closure.clone());
         environment.define(format!("this"), 0, 0, Some(Value::LoxInstance(instance.clone())));
+        let inst = instance.clone();
+        let inst2 = inst.as_ref();
+        let class = inst2.klass.as_ref();
+        let super_c = *class.superclass.clone();
+        match super_c{
+            Some(sup) => environment.define(format!("super"), 0, 0, Some(Value::LoxClass(sup))),
+            None => ()
+        }
         return UserDefined {
             name: self.name.clone(),
             parameters: self.parameters.clone(),

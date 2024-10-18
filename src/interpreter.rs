@@ -514,7 +514,31 @@ impl Interpreter{
 
     fn visit_super_expr(&mut self, expr: Expr) -> Result<Value, InterpreterError>{
         if let Expr::Super { keyword, method } = expr.clone(){
-            return Ok(Value::Nil)
+            let val = self.lookup_variable(keyword, expr)?;
+            match val {
+                Value::LoxClass(clas) =>{
+                    let super_method = clas.find_method(method);
+                    match super_method{
+                        Ok(sup) => {
+                            let ret = sup.call(self, &Vec::new())?;
+                            return Ok(ret);
+                        }
+                        Err(err) => return Err(InterpreterError::new(
+                            format!("Cannot access super method"), 
+                            0, 
+                            0, 
+                            Value::Nil
+                        ))
+                    }
+                }
+                _ => return Err(InterpreterError::new(
+                     format!("Cannot access super method"), 
+                     0, 
+                     0, 
+                     Value::Nil
+                ))
+            }
+
         }
         else{
             panic!("Unreachable Super Error");
