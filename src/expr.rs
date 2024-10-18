@@ -55,6 +55,10 @@ pub enum Expr {
         //THIS MAY BE BAD
         keyword: String
     },
+    Super{
+        keyword: String,
+        method: String
+    },
     None
 }
 

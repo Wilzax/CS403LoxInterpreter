@@ -310,7 +310,7 @@ impl Parser{
                 })
             }
             else if let Expr::Get { object, name } = expr.clone(){
-                println!("HERE");
+                //println!("HERE");
                 return Ok(Expr::Set { 
                     object: object, 
                     name: name, 
@@ -325,7 +325,6 @@ impl Parser{
                 column: equals.column 
             })
         }
-        //println!("Freak off");
         return Ok(expr);    
     }
 
@@ -555,6 +554,12 @@ impl Parser{
                 Some(_) => panic!("Internal parser error when parsing Identifier"),
                 None => panic!("Found no literal when parsing Identifier")
             }
+        }
+        if self.matches(vec![TokenType::Super]){
+            let keyword: String = String::from_utf8(self.previous().lexeme).unwrap();
+            self.consume(TokenType::Dot, format!("Expect '.' after 'super'"))?;
+            let method: Token = self.consume(TokenType::Identifier, format!("Expect superclass method name"))?;
+            return Ok(Expr::Super { keyword: keyword, method: String::from_utf8(method.lexeme).unwrap() })
         }
         Err(ParserError {
             message: format!("Expected expression at line: {}, column{}",
