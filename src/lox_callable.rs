@@ -95,6 +95,23 @@ impl LoxClass{
             // ))
         }
     }
+
+    pub fn find_superclass_method(&mut self, name: String) -> Result<UserDefined, ()>{
+        match *self.superclass.clone(){
+            Some(mut super_class) => return super_class.find_superclass_method(name),
+            None => ()
+            // None => return Err(InterpreterError::new(
+            //     format!("Can't find method {}", name), 
+            //     0, 
+            //     0, 
+            //     Value::Nil
+            // ))
+        }
+        match self.methods.get(&name){
+            Some(method) => return Ok(method.clone()),
+            None => return Err(())//return Err(())
+        }
+    }
 }
 
 impl NativeFunction{

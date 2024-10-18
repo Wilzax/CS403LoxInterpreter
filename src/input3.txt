@@ -13,9 +13,8 @@ print "---------------------------------------------";
 
 // Function to compute Fibonacci iteratively
 fun iterativeFibonacci(n) {
-  if (n <= 1) {
-    return n;
-  }
+  if (n <= 1) return n;
+  
   var prev = 0;
   var current = 1;
 

@@ -1,0 +1,52 @@
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {
+  cook() {
+    print "Hey bro";
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();
+
+class A {
+  method() {
+    print "A method";
+    print this.name;
+  }
+}
+
+class B < A {
+  method() {
+    print "B method";
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class C < B {
+  method() {
+    print "C method";
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class D < C {}
+
+var d = D();
+d.name = "Programmer";
+d.test();
+
+var d2 = C();
+d2.name = "Brodye";
+d2.test();
