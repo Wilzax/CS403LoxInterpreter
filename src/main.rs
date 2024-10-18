@@ -71,18 +71,25 @@ fn main() {
 
     fn interactive_mode() {
         println!("Welcome to the Lox interpreter! Type 'exit' to quit.");
+        
+        let mut accumulated_input = String::new(); // Accumulator for inputs
+        
         loop {
-            print!("> "); 
+            print!("> ");
             io::stdout().flush().unwrap();
     
             let mut input = String::new();
             std::io::stdin().read_line(&mut input).unwrap();
+    
             if input.trim() == "exit" {
                 break;
             }
-            scanner::run(input);
+    
+            accumulated_input.push_str(&input);
+            
+            scanner::run(accumulated_input.clone());
         }
-    }
+    } 
 
     println!("Thus ends the program.");
 }
