@@ -1011,31 +1011,6 @@ mod tests{
                 Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
             }
         }
-        
-
-        // #[test]
-        // fn addition_produces_correct_response() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Literal { value: LiteralType::Number(130.0) }),
-        //         operator: BinaryOpType::Plus,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(58.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-            
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-
-        //     let mut interpreter = Interpreter::new(Vec::new());
-        //     let result = interpreter.interpret(vec![stmt]);
-        
-        //     match result {
-        //         Ok(_) => {
-        //             let expected_value = Value::Number(188.0);
-        //             assert_eq!(expected_value, result.unwrap()); 
-        //         },
-        //         Err(err) => panic!("Expected correct addition, but got an error: {}", err.return_error()),
-        //     }
-        // }
 
         #[test]
         fn operator_precedence() {
