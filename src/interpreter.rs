@@ -136,7 +136,7 @@ impl Default for Interpreter{
 
 impl Interpreter{
     pub fn new(statements: Vec<Stmt>) -> Self{
-        // Interpreter{
+// Interpreter{
         //     statements: statements,
         //     globals: Environment::default(),
         //     environment: Environment::default(),
@@ -906,118 +906,111 @@ mod tests{
                 col: 1,
             };
             let stmt = Stmt::Expr { expression: Box::new(expr) };
-            let result = Interpreter::interpret(vec![stmt]);
-            
+        
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
+        
             match result {
                 Ok(_) => assert!(true, "Expected no errors during addition"),
                 Err(err) => panic!("Error when interpreting: {}", err.return_error()),
             }
+        }     
+
+        #[test]
+        fn simple_subtraction() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                operator: BinaryOpType::Minus,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
+            
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during subtraction"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
         }
 
-        // #[test]
-        // fn simple_subtraction() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-        //         operator: BinaryOpType::Minus,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let result = Interpreter::interpret(vec![stmt]);
+        #[test]
+        fn simple_multiplication() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                operator: BinaryOpType::Star,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
             
-        //     match result {
-        //         Ok(_) => assert!(true, "Expected no errors during subtraction"),
-        //         Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-        //     }
-        // }
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during multiplication"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
 
-        // #[test]
-        // fn simple_multiplication() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-        //         operator: BinaryOpType::Star,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let result = Interpreter::interpret(vec![stmt]);
-            
-        //     match result {
-        //         Ok(_) => assert!(true, "Expected no errors during multiplication"),
-        //         Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-        //     }
-        // }
+        #[test]
+        fn simple_division() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                operator: BinaryOpType::Slash,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
 
-        // #[test]
-        // fn simple_division() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-        //         operator: BinaryOpType::Slash,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let result = Interpreter::interpret(vec![stmt]);
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
             
-        //     match result {
-        //         Ok(_) => assert!(true, "Expected no errors during division"),
-        //         Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-        //     }
-        // }
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during division"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
     
-        // #[test]
-        // fn variable_assignment() {
-        //     let var_stmt = Stmt::Var {
-        //         name: "x".to_string(),
-        //         line: 1,
-        //         column: 1,
-        //         initializer: Some(Expr::Literal { value: LiteralType::Number(42.0) }),  
-        //     };
-        //     let print_stmt = Stmt::Print {
-        //         expression: Box::new(Expr::Variable { name: "x".to_string(), line: 1, col: 1 }),
-        //     };
-        //     let result = Interpreter::interpret(vec![var_stmt, print_stmt]);
+
+        #[test]
+        fn print_statement() {
+            let print_stmt = Stmt::Print {
+                expression: Box::new(Expr::Literal { value: LiteralType::String("Hello, World!".to_string()) }),
+            };
+
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![print_stmt]);
+
+            
     
-        //     match result {
-        //         Ok(_) => assert!(true, "Expected no errors during variable assignment"),
-        //         Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-        //     }
-        // }
+            match result {
+                Ok(_) => assert!(true, "Expected no errors during printing"),
+                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+            }
+        }
     
-        // #[test]
-        // fn print_statement() {
-        //     let print_stmt = Stmt::Print {
-        //         expression: Box::new(Expr::Literal { value: LiteralType::String("Hello, World!".to_string()) }),
-        //     };
-        //     let result = Interpreter::interpret(vec![print_stmt]);
+        #[test]
+        fn division_by_zero() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
+                operator: BinaryOpType::Slash,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
     
-        //     match result {
-        //         Ok(_) => assert!(true, "Expected no errors during printing"),
-        //         Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-        //     }
-        // }
-    
-        // #[test]
-        // fn division_by_zero() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
-        //         operator: BinaryOpType::Slash,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let mut interpreter = Interpreter::new(stmt.clone());
-        //     let result = interpreter.interpret(vec![stmt]);
-    
-        //     match result {
-        //         Ok(_) => panic!("Expected an error during division by zero"),
-        //         Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
-        //     }
-        // }
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
+
+            match result {
+                Ok(_) => panic!("Expected an error during division by zero"),
+                Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
+            }
+        }
         
 
         // #[test]
@@ -1031,36 +1024,40 @@ mod tests{
         //     };
             
         //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let result = Interpreter::interpret(vec![stmt]);
+
+        //     let mut interpreter = Interpreter::new(Vec::new());
+        //     let result = interpreter.interpret(vec![stmt]);
         
         //     match result {
         //         Ok(_) => {
         //             let expected_value = Value::Number(188.0);
-        //             assert_eq!(expected_value, Value::Number(188.0)); 
+        //             assert_eq!(expected_value, result.unwrap()); 
         //         },
         //         Err(err) => panic!("Expected correct addition, but got an error: {}", err.return_error()),
         //     }
         // }
 
-        // #[test]
-        // fn operator_precedence() {
-        //     let expr = Expr::Binary {
-        //         left: Box::new(Expr::Binary {
-        //             left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-        //             operator: BinaryOpType::Plus,
-        //             right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
-        //             line: 1,
-        //             col: 1,
-        //         }),
-        //         operator: BinaryOpType::Star,
-        //         right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-        //         line: 1,
-        //         col: 1,
-        //     };
-        //     let stmt = Stmt::Expr { expression: Box::new(expr) };
-        //     let result = Interpreter::interpret(vec![stmt]);
-        //     assert!(result.is_ok());
-        // }
+        #[test]
+        fn operator_precedence() {
+            let expr = Expr::Binary {
+                left: Box::new(Expr::Binary {
+                    left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+                    operator: BinaryOpType::Plus,
+                    right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
+                    line: 1,
+                    col: 1,
+                }),
+                operator: BinaryOpType::Star,
+                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                line: 1,
+                col: 1,
+            };
+            let stmt = Stmt::Expr { expression: Box::new(expr) };
+
+            let mut interpreter = Interpreter::new(Vec::new());
+            let result = interpreter.interpret(vec![stmt]);
+            assert!(result.is_ok());
+        }
         
     }
     
