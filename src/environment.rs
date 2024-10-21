@@ -6,6 +6,7 @@ use crate::expr::{Expr};
 use crate::interpreter::{InterpreterError, Value};
 use crate::scanner::{Token, TokenType};
 use crate::lox_instance::*;
+//fixing commit messages
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Environment{
