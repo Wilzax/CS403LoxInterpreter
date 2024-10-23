@@ -292,3 +292,114 @@ impl Environment{
 
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lox_callable::*;
+    use crate::lox_instance::*;
+    use crate::expr::{Expr};
+    use crate::interpreter::{Value};
+    use crate::scanner::{Token, TokenType};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_define() {
+        let mut env = Environment::default();
+        env.define(String::from("test"), 0, 0, Some(Value::Number(1.0)));
+        let mut expected = HashMap::new();
+        expected.insert(String::from("test"), (Some(Value::Number(1.0)), VarLocation { line: 0, col: 0 }));
+        assert_eq!(env.values, expected);
+    }
+
+    #[test]
+    fn test_lookup_existing_variable() {
+        let mut env = Environment::default();
+        env.define(String::from("x"), 1, 1, Some(Value::Number(10.0)));
+        let expr = Expr::Variable {
+            name: "x".to_string(),
+            line: 1,
+            col: 1,
+        };
+        let result = env.get(&expr);
+        
+        assert_eq!(result.unwrap(), Value::Number(10.0));
+    }
+
+    #[test]
+    fn test_lookup_undefined_variable() {
+        let env = Environment::default();
+        let expr = Expr::Variable {
+            name: "y".to_string(),
+            line: 1,
+            col: 1,
+        };
+        let result = env.get(&expr);
+        assert!(result.is_err()); 
+    }
+    
+    #[test]
+    fn test_assign_existing_variable() {
+        let mut env = Environment::default();
+        env.define(String::from("z"), 2, 2, Some(Value::Number(5.0)));
+        let result = env.assign("z".to_string(), 2, 2, &Value::Number(15.0));
+        assert!(result.is_ok()); 
+        assert_eq!(env.values.get("z").unwrap().0, Some(Value::Number(15.0)));
+    }
+
+    #[test]
+    fn test_assign_undefined_variable() {
+        let mut env = Environment::default();
+        let result = env.assign("a".to_string(), 2, 2, &Value::Number(20.0));
+        assert!(result.is_err()); 
+    }
+    
+    #[test]
+    fn test_define_token() {
+        let mut env = Environment::default();
+        
+        let token = Token {
+            token_type: TokenType::Identifier,
+            lexeme: vec![b'x'],
+            literal: None, 
+            line: 1,
+            column: 1,
+        };
+    
+        env.define_token(token.clone(), Value::Number(42.0));
+    
+        let key = String::from_utf8(token.lexeme).unwrap();
+        let value = env.values.get(&key);
+        
+        assert_eq!(value, Some(&(Some(Value::Number(42.0)), VarLocation { line: 1, col: 1 })));
+    }
+    
+    #[test]
+    fn test_assign_at() {
+        let mut env = Environment::default();
+        env.define("x".to_string(), 1, 1, Some(Value::Number(5.0)));
+
+        let result = env.assign_at("x".to_string(), 1, 1, &Value::Number(10.0), 0);
+        assert!(result.is_ok());
+        assert_eq!(env.values.get("x").unwrap().0, Some(Value::Number(10.0)));
+    }
+
+    #[test]
+    fn test_get_at() {
+        let mut env = Environment::default();
+        env.define("x".to_string(), 1, 1, Some(Value::Number(5.0)));
+    
+        let expr = Expr::Variable {
+            name: "x".to_string(),
+            line: 1,
+            col: 1,
+        };
+    
+        let result = env.get_at(0, expr);
+    
+        match result {
+            Ok(value) => assert_eq!(value, Value::Number(5.0)),
+            Err(e) => panic!("Expected to find variable, but got an error: {:?}", e),
+        }
+    }
+    
+}

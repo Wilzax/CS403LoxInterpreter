@@ -862,6 +862,7 @@ impl Interpreter{
     }
 }
 
+#[derive(Debug)]
 pub struct InterpreterError{
     error_message: String,
     line: usize,
