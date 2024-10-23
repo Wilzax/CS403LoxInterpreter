@@ -28,6 +28,7 @@ class B < A {
 
   test() {
     super.method();
+    print this.name;
   }
 }
 
@@ -50,3 +51,5 @@ d.test();
 var d2 = C();
 d2.name = "Brodye";
 d2.test();
+
+print clock();

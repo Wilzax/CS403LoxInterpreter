@@ -4,6 +4,7 @@ use crate::scanner::{Scanner, Token, TokenType};
 use crate::expr; //Did not want to type scanner::Token 8000 times
 use crate::expr::Expr;
 use crate::stmt::*;
+//fixing commit messages
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parser{
