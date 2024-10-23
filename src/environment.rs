@@ -643,5 +643,60 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_assign_defined_variable() {
+        let mut env = Environment::default();
+        let var_name = "x".to_string();
+        let initial_value = Value::Number(10.0);
 
+        env.define(var_name.clone(), 1, 1, Some(initial_value.clone()));
+
+        let new_value = Value::Number(20.0);
+        let result = env.assign(var_name.clone(), 2, 1, &new_value);
+
+        assert!(result.is_ok());
+
+        let updated_value = env.get(&Expr::Variable {
+            name: var_name.clone(),
+            line: 2,
+            col: 1,
+        }).unwrap();
+
+        assert_eq!(updated_value, new_value);
+    }
+
+    #[test]
+    fn test_assign_undefined_variable() {
+        let mut env = Environment::default();
+    
+        let result = env.assign("y".to_string(), 3, 1, &Value::Number(15.0));
+    
+        match result {
+            Err(err) => {
+                assert_eq!(err.value, Value::Nil); 
+                assert_eq!(err.value, Value::Nil); 
+            },
+            _ => panic!("Expected error, got {:?}", result),
+        }
+    }    
+
+    #[test]
+    fn test_assign_variable_in_nested_environment() {
+        let mut outer_env = Environment::default();
+        outer_env.define("x".to_string(), 1, 1, Some(Value::Number(5.0)));
+    
+        let mut inner_env = Environment::new(outer_env.clone()); 
+    
+        inner_env.assign("x".to_string(), 2, 1, &Value::Number(30.0)).unwrap();
+    
+        let value_inner = inner_env.get(&Expr::Variable { name: "x".to_string(), line: 2, col: 1 }).unwrap();
+
+        assert_eq!(value_inner, Value::Number(30.0));
+
+        let value_outer = outer_env.get(&Expr::Variable { name: "x".to_string(), line: 1, col: 1 }).unwrap();
+        
+        assert_eq!(value_outer, Value::Number(5.0));
+    }
+    
+    
 }
