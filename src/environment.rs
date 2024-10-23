@@ -541,4 +541,107 @@ mod tests {
         let stored_value_2 = env.values.get(&var_name_2).unwrap();
         assert_eq!(stored_value_2, &(Some(value_2), VarLocation { line: 0, col: 0 }));
     }  
+
+    #[test]
+    fn test_get_variable() {
+        let mut env = Environment::default();
+        let var_name = "x".to_string();
+        let value = Value::Number(42.0);
+
+        env.define_string(var_name.clone(), value.clone());
+
+        let expr = Expr::Variable {
+            name: var_name.clone(),
+            line: 1,
+            col: 1,
+        };
+
+        let result = env.get(&expr);
+
+        match result {
+            Ok(val) => assert_eq!(val, value),
+            Err(_) => panic!("Expected Ok, got an error"),
+        }
+    }
+
+    #[test]
+    fn test_get_undefined_variable() {
+        let env = Environment::default();
+
+        let expr = Expr::Variable {
+            name: "y".to_string(),
+            line: 1,
+            col: 1,
+        };
+
+        let result = env.get(&expr);
+
+        match result {
+            Err(err) => {
+                assert_eq!(err.value, Value::Nil);
+            },
+            _ => panic!("Expected error, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_get_this() {
+        let mut env = Environment::default();
+        let value = Value::Number(100.0);
+        env.define_string("this".to_string(), value.clone());
+
+        let expr = Expr::This {
+            keyword: "this".to_string(),
+        };
+
+        let result = env.get(&expr);
+
+        match result {
+            Ok(val) => assert_eq!(val, value),
+            Err(_) => panic!("Expected Ok, got an error"),
+        }
+    }
+
+    #[test]
+    fn test_get_super() {
+        let mut env = Environment::default();
+        let value = Value::Number(200.0);
+        env.define_string("super".to_string(), value.clone());
+
+        let expr = Expr::Super {
+            keyword: "super".to_string(),
+            method: "someMethod".to_string(),
+        };
+
+        let result = env.get(&expr);
+
+        match result {
+            Ok(val) => assert_eq!(val, value),
+            Err(_) => panic!("Expected Ok, got an error"),
+        }
+    }
+
+    #[test]
+    fn test_get_variable_undefined_but_declared() {
+        let mut env = Environment::default();
+        let var_name = "z".to_string();
+        env.define(var_name.clone(), 2, 3, None); 
+
+        let expr = Expr::Variable {
+            name: var_name.clone(),
+            line: 2,
+            col: 3,
+        };
+
+        let result = env.get(&expr);
+
+        match result {
+            Err(err) => {
+                assert_eq!(err.value, Value::Nil); 
+            },
+            _ => panic!("Expected error, got {:?}", result),
+        }
+    }
+
+
 }
