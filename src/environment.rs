@@ -749,4 +749,83 @@ mod tests {
         }
     }
     
+
+    #[test]
+    fn test_get_at() {
+        let mut outer_env = Environment::default();
+        outer_env.define("x".to_string(), 1, 1, Some(Value::Number(42.0)));
+    
+        let mut inner_env = Environment::new(outer_env);
+    
+        inner_env.define("y".to_string(), 2, 1, Some(Value::Number(100.0)));
+
+        let expr_x = Expr::Variable {
+            name: "x".to_string(),
+            line: 1,
+            col: 1,
+        };
+
+        let expr_y = Expr::Variable {
+            name: "y".to_string(),
+            line: 2,
+            col: 1,
+        };
+
+        let result_y = inner_env.get_at(0, expr_y.clone());
+        assert!(result_y.is_ok());
+        assert_eq!(result_y.unwrap(), Value::Number(100.0));
+
+        let result_x = inner_env.get_at(1, expr_x.clone());
+        assert!(result_x.is_ok());
+        assert_eq!(result_x.unwrap(), Value::Number(42.0));
+    }
+    
+    #[test]
+    fn test_get_at_and_ancestor() {
+        let mut outer_env = Environment::default();
+        outer_env.define("x".to_string(), 1, 1, Some(Value::Number(42.0)));
+    
+        let mut middle_env = Environment::new(*Box::new(outer_env.clone()));
+        middle_env.define("y".to_string(), 2, 1, Some(Value::Number(100.0)));
+    
+        let mut inner_env = Environment::new(*Box::new(middle_env.clone()));
+        inner_env.define("z".to_string(), 3, 1, Some(Value::Number(200.0)));
+    
+        let expr_x = Expr::Variable {
+            name: "x".to_string(),
+            line: 1,
+            col: 1,
+        };
+    
+        let expr_y = Expr::Variable {
+            name: "y".to_string(),
+            line: 2,
+            col: 1,
+        };
+    
+        let expr_z = Expr::Variable {
+            name: "z".to_string(),
+            line: 3,
+            col: 1,
+        };
+    
+        let result_z = inner_env.get_at(0, expr_z.clone());
+        assert!(result_z.is_ok());
+        assert_eq!(result_z.unwrap(), Value::Number(200.0));
+    
+        let result_y = inner_env.get_at(1, expr_y.clone());
+        assert!(result_y.is_ok());
+        assert_eq!(result_y.unwrap(), Value::Number(100.0));
+    
+        let result_x = inner_env.get_at(2, expr_x.clone());
+        assert!(result_x.is_ok());
+        assert_eq!(result_x.unwrap(), Value::Number(42.0));
+    
+        let ancestor_1 = inner_env.ancestor(1);
+        assert_eq!(ancestor_1.get(&expr_y).unwrap(), Value::Number(100.0));
+    
+        let ancestor_2 = inner_env.ancestor(2);
+        assert_eq!(ancestor_2.get(&expr_x).unwrap(), Value::Number(42.0));
+    }
+    
 }
