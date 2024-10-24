@@ -35,6 +35,7 @@ pub struct VarLocation{
     pub col: i64
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum LookupResult{
     Ok(Value),
     UndefinedButDeclared{
@@ -714,4 +715,38 @@ mod tests {
 
         assert_eq!(updated_value, Value::Number(20.0));
     }
+
+    #[test]
+    fn test_val_lookup_super() {
+        let mut env = Environment::default();
+        env.define("super".to_string(), 1, 1, Some(Value::Number(100.0)));
+    
+        let keyword_token = Token { 
+            lexeme: b"super".to_vec(), 
+            line: 1, 
+            column: 1, 
+            literal: None, 
+            token_type: TokenType::Super 
+        };
+    
+        let method_token = Token { 
+            lexeme: b"method".to_vec(), 
+            line: 1, 
+            column: 1, 
+            literal: None, 
+            token_type: TokenType::Identifier 
+        };
+    
+        let keyword_str = String::from_utf8(keyword_token.lexeme.clone()).unwrap();
+        let method_str = String::from_utf8(method_token.lexeme.clone()).unwrap();
+    
+        let expr = Expr::Super { keyword: keyword_str, method: method_str };
+        let result = env.val_lookup(&expr);
+    
+        match result {
+            LookupResult::Ok(val) => assert_eq!(val, Value::Number(100.0)),
+            _ => panic!("Expected Ok with Value::Number(100.0), got {:?}", result),
+        }
+    }
+    
 }
