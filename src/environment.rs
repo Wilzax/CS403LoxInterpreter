@@ -697,6 +697,21 @@ mod tests {
         
         assert_eq!(value_outer, Value::Number(5.0));
     }
+
     
-    
+    #[test]
+    fn test_assign_at() {
+        let mut outer_env = Environment::default();
+        outer_env.define("x".to_string(), 1, 1, Some(Value::Number(10.0)));
+
+        let mut inner_env = Environment::new(outer_env);
+
+        let result = inner_env.assign_at("x".to_string(), 2, 1, &Value::Number(20.0), 1);
+
+        assert!(result.is_ok());
+
+        let updated_value = inner_env.get(&Expr::Variable { name: "x".to_string(), line: 1, col: 1 }).unwrap();
+
+        assert_eq!(updated_value, Value::Number(20.0));
+    }
 }
