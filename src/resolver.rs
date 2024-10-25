@@ -443,5 +443,85 @@ mod tests {
         // Step 5: Assert that the resolver did not encounter any errors
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
+
+    #[test]
+    fn test_declare() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Begin a new scope
+        resolver.begin_scope();
+    
+        // Step 4: Call declare to add a variable to the scope
+        resolver.declare("test_var".to_string());
+    
+        // Step 5: Assert that the variable is in the current scope
+        let current_scope = resolver.scopes.last().expect("Expected at least one scope");
+        assert!(current_scope.contains_key("test_var"), "Expected 'test_var' to be declared in the current scope");
+        assert!(!current_scope["test_var"], "Expected 'test_var' to be declared but not defined");
+    }
+
+    #[test]
+    fn test_define() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Begin a new scope
+        resolver.begin_scope();
+    
+        // Step 4: Declare a variable
+        resolver.declare("test_var".to_string());
+    
+        // Step 5: Call define to define the variable
+        resolver.define("test_var".to_string());
+    
+        // Step 6: Assert that the variable is defined in the current scope
+        let current_scope = resolver.scopes.last().expect("Expected at least one scope");
+        assert!(current_scope.contains_key("test_var"), "Expected 'test_var' to be defined in the current scope");
+        assert!(current_scope["test_var"], "Expected 'test_var' to be defined");
+    
+        // Step 7: Attempt to define a variable that hasn't been declared
+        resolver.define("undefined_var".to_string());
+    
+        // Step 8: Assert that an error was recorded for the undefined variable
+        assert!(!resolver.errors.is_empty(), "Expected an error for undefined variable");
+        assert_eq!(resolver.errors[0], "Variable undefined_var is not defined", "Expected error message for undefined variable");
+    }
+
+    #[test]
+    fn test_query() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Begin a new scope
+        resolver.begin_scope();
+    
+        // Step 4: Declare a variable with a state of false (not defined)
+        resolver.declare("test_var".to_string());
+    
+        // Step 5: Query the variable with the expected state
+        let query_result = resolver.query("test_var".to_string(), false);
+        assert!(query_result, "Expected 'test_var' to be found with state false");
+    
+        // Step 6: Define the variable
+        resolver.define("test_var".to_string());
+    
+        // Step 7: Query the variable with the updated state
+        let query_result = resolver.query("test_var".to_string(), true);
+        assert!(query_result, "Expected 'test_var' to be found with state true");
+    
+        // Step 8: Query a variable that doesn't exist
+        let query_result = resolver.query("undefined_var".to_string(), false);
+        assert!(!query_result, "Expected 'undefined_var' not to be found");
+    }
     
 }
