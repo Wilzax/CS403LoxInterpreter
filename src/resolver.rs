@@ -374,5 +374,40 @@ mod tests {
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
     
+    #[test]
+    fn test_resolve_stmt() {
+        // Step 1: Create the statements to resolve
+        let stmt_block = Stmt::Block {
+            statements: vec![Stmt::Print {
+                expression: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
+            }],
+        };
+        let stmt_class = Stmt::Class {
+            name: "MyClass".to_string(),
+            superclass: None,
+            methods: Box::new(vec![]),
+        };
+        let stmt_var = Stmt::Var {
+            name: "y".to_string(),
+            initializer: Some(Expr::Literal { value: LiteralType::Number(20.0) }),
+            line: 2,
+            column: 5,
+        };
+    
+        // Step 2: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 3: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 4: Call resolve_stmt for each statement
+        resolver.resolve_stmt(stmt_block.clone());
+        resolver.resolve_stmt(stmt_class.clone());
+        resolver.resolve_stmt(stmt_var.clone());
+    
+        // Step 5: Assert that the resolver did not encounter any errors
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
+    
     
 }
