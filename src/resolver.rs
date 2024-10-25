@@ -409,5 +409,39 @@ mod tests {
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
     
+    #[test]
+    fn test_resolve_expr() {
+        // Step 1: Create the expressions to resolve
+        let expr_assign = Expr::Assign {
+            name: "a".to_string(),
+            line: 1,
+            column: 1,
+            value: Box::new(Expr::Literal { value: LiteralType::Number(42.0) }),
+        };
+        let expr_binary = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
+            operator: BinaryOpType::Plus,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
+            line: 1,
+            col: 3,
+        };
+        let expr_grouping = Expr::Grouping {
+            expression: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+        };
+    
+        // Step 2: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 3: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 4: Call resolve_expr for each expression
+        resolver.resolve_expr(expr_assign.clone());
+        resolver.resolve_expr(expr_binary.clone());
+        resolver.resolve_expr(expr_grouping.clone());
+    
+        // Step 5: Assert that the resolver did not encounter any errors
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
     
 }
