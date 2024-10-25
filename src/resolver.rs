@@ -6,7 +6,6 @@ use crate::expr::*;
 use crate::interpreter;
 use crate::interpreter::*;
 use crate::environment::*;
-//fixing commit messages
 
 pub struct Resolver{
     pub interpreter: Interpreter,
@@ -314,5 +313,24 @@ impl Resolver{
         let res = inner(self);
         self.end_scope();
         res
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::expr::{Expr};
+    use crate::stmt::{Stmt};
+    use crate::interpreter::Interpreter;
+
+    #[test]
+    fn test_resolver_new() {
+        let interpreter = Interpreter::new(Vec::<Stmt>::new()); // Pass an empty Vec<Stmt> as required
+        let resolver = Resolver::new(interpreter);
+
+        assert!(resolver.scopes.is_empty(), "Expected scopes to be empty");
+        assert!(resolver.errors.is_empty(), "Expected errors to be empty");
+        assert_eq!(resolver.state.function, FunctionState::None, "Expected function state to be None");
+        assert_eq!(resolver.current_class, ClassState::None, "Expected current class to be None");
     }
 }
