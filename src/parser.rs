@@ -1,10 +1,8 @@
-use crate::interpreter::Value;
 use crate::scanner::{self, Literal};
-use crate::scanner::{Scanner, Token, TokenType};
-use crate::expr; //Did not want to type scanner::Token 8000 times
+use crate::scanner::{Token, TokenType};
+use crate::expr;
 use crate::expr::Expr;
 use crate::stmt::*;
-//fixing commit messages
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parser{

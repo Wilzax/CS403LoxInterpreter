@@ -1,11 +1,8 @@
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::mem;
 use crate::stmt::*;
 use crate::expr::*;
-use crate::interpreter;
 use crate::interpreter::*;
-use crate::environment::*;
 //fixing commit messages
 
 pub struct Resolver{
@@ -17,7 +14,7 @@ pub struct Resolver{
 }
 
 #[derive(Debug)]
-struct ResolverState{
+pub struct ResolverState{
     function: FunctionState
 }
 

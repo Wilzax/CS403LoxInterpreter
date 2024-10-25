@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::interpreter::*;
-use crate::expr::*;
 use crate::lox_callable::*;
 //fixing commit messages
 
@@ -37,7 +36,7 @@ impl LoxInstance{
                 let method = self.klass.find_method(name.clone());
                 match method{
                     Ok(mut ret_method) => return Ok(Value::UserDefined(ret_method.bind(self))),
-                    Err(err) => return Err(InterpreterError::new(
+                    Err(_err) => return Err(InterpreterError::new(
                                     format!("Undefined property '{}'", name),
                                     0,
                                     0,
@@ -55,5 +54,17 @@ impl LoxInstance{
 
     pub fn to_string(&self) -> String{
         return format!("{} instance", self.klass.name);
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use crate::scanner::*;
+    use crate::parser::*;
+    use crate::expr::*; 
+    #[test]
+    fn correct_instances_single(){
+
     }
 }

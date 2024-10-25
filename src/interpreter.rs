@@ -1,18 +1,14 @@
 use std::collections::HashMap;
-use std::env;
-use std::fmt::format;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
+
 use crate::environment::*;
 use crate::lox_callable::*;
 use crate::lox_instance::LoxInstance;
-use crate::scanner;
-use crate::scanner::{Scanner, Token, TokenType};
-use crate::expr::{self, BinaryOpType, UnaryOpType}; //Did not want to type scanner::Token 8000 times
+use crate::scanner::TokenType;
+use crate::expr::{self, BinaryOpType, UnaryOpType};
 use crate::expr::Expr;
 use crate::stmt::*;
-use crate::parser;
-//fixing commit messages
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -81,7 +77,6 @@ impl Type{
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Interpreter{
@@ -885,157 +880,178 @@ impl InterpreterError{
     }
 }
 
-#[cfg(test)]
-mod tests{
-    use super::*;
-    use crate::scanner::*;
-    use crate::parser::*;
-    use crate::expr::*;
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::expr::{Expr, LiteralType};
-        use crate::stmt::{Stmt};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::expr::{Expr, LiteralType};
+    use crate::stmt::Stmt;
+
+    #[test]
+    fn simple_addition() {
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+            operator: BinaryOpType::Plus,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
     
-        #[test]
-        fn simple_addition() {
-            let expr = Expr::Binary {
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+    
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during addition"),
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }     
+
+    #[test]
+    fn simple_subtraction() {
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+            operator: BinaryOpType::Minus,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+        
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during subtraction"),
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }
+
+    #[test]
+    fn simple_multiplication() {
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+            operator: BinaryOpType::Star,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+        
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during multiplication"),
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }
+
+    #[test]
+    fn simple_division() {
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+            operator: BinaryOpType::Slash,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
+
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+        
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during division"),
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }
+
+
+    #[test]
+    fn print_statement() {
+        let print_stmt = Stmt::Print {
+            expression: Box::new(Expr::Literal { value: LiteralType::String("Hello, World!".to_string()) }),
+        };
+
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![print_stmt]);
+
+        
+
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during printing"),
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }
+
+    #[test]
+    fn division_by_zero() {
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
+            operator: BinaryOpType::Slash,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
+
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+
+        match result {
+            Ok(_) => panic!("Expected an error during division by zero"),
+            Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
+        }
+    }
+
+    #[test]
+    fn operator_precedence() {
+        let expr: Expr = Expr::Binary {
+            left: Box::new(Expr::Binary {
                 left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
                 operator: BinaryOpType::Plus,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+                right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
                 line: 1,
                 col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-        
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-        
-            match result {
-                Ok(_) => assert!(true, "Expected no errors during addition"),
-                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-            }
-        }     
+            }),
+            operator: BinaryOpType::Star,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 1,
+        };
+        let stmt = Stmt::Expr { expression: Box::new(expr) };
 
-        #[test]
-        fn simple_subtraction() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-                operator: BinaryOpType::Minus,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-                line: 1,
-                col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-            
-            match result {
-                Ok(_) => assert!(true, "Expected no errors during subtraction"),
-                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-            }
-        }
-
-        #[test]
-        fn simple_multiplication() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-                operator: BinaryOpType::Star,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-                line: 1,
-                col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-            
-            match result {
-                Ok(_) => assert!(true, "Expected no errors during multiplication"),
-                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-            }
-        }
-
-        #[test]
-        fn simple_division() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-                operator: BinaryOpType::Slash,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-                line: 1,
-                col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-            
-            match result {
-                Ok(_) => assert!(true, "Expected no errors during division"),
-                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-            }
-        }
-    
-
-        #[test]
-        fn print_statement() {
-            let print_stmt = Stmt::Print {
-                expression: Box::new(Expr::Literal { value: LiteralType::String("Hello, World!".to_string()) }),
-            };
-
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![print_stmt]);
-
-            
-    
-            match result {
-                Ok(_) => assert!(true, "Expected no errors during printing"),
-                Err(err) => panic!("Error when interpreting: {}", err.return_error()),
-            }
-        }
-    
-        #[test]
-        fn division_by_zero() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Literal { value: LiteralType::Number(10.0) }),
-                operator: BinaryOpType::Slash,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
-                line: 1,
-                col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-    
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-
-            match result {
-                Ok(_) => panic!("Expected an error during division by zero"),
-                Err(err) => assert_eq!(err.error_message, "Divide by zero error at line: 1, column: 1"),
-            }
-        }
-
-        #[test]
-        fn operator_precedence() {
-            let expr = Expr::Binary {
-                left: Box::new(Expr::Binary {
-                    left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
-                    operator: BinaryOpType::Plus,
-                    right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
-                    line: 1,
-                    col: 1,
-                }),
-                operator: BinaryOpType::Star,
-                right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
-                line: 1,
-                col: 1,
-            };
-            let stmt = Stmt::Expr { expression: Box::new(expr) };
-
-            let mut interpreter = Interpreter::new(Vec::new());
-            let result = interpreter.interpret(vec![stmt]);
-            assert!(result.is_ok());
-        }
-        
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![stmt]);
+        assert!(result.is_ok());
     }
     
+    #[test]
+    fn if_statement_true_branch() {
+        let condition = Expr::Literal { value: LiteralType::Number(1.0) }; // Non-zero, interpreted as true
+        let true_branch = Stmt::Expr {
+            expression: Box::new(Expr::Literal {
+                value: LiteralType::Number(42.0),
+            }),
+        };
+        let false_branch = Stmt::Expr {
+            expression: Box::new(Expr::Literal {
+                value: LiteralType::Number(0.0),
+            }),
+        };
+    
+        let if_stmt = Stmt::If {
+            condition: Box::new(condition),
+            then_branch: Box::new(true_branch),
+            else_branch: Some(Box::new(false_branch))
+        };
+    
+        let mut interpreter = Interpreter::new(Vec::new());
+        let result = interpreter.interpret(vec![if_stmt]);
+    
+        match result {
+            Ok(_) => assert!(true, "Expected no errors during multiplication"),
+            
+            Err(err) => panic!("Error when interpreting: {}", err.return_error()),
+        }
+    }
 }
