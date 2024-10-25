@@ -319,9 +319,11 @@ impl Resolver{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::expr::{Expr};
+    use crate::expr::{Expr, LiteralType};
     use crate::stmt::{Stmt};
     use crate::interpreter::Interpreter;
+    use crate::{resolver::Resolver};
+    use crate::scanner::Literal;
 
     #[test]
     fn test_resolver_new() {
@@ -336,7 +338,7 @@ mod tests {
 
 
     #[test]
-    fn test_resolve_no_errors() {
+    fn test_resolve() {
         let interpreter = Interpreter::new(Vec::new());
         let mut resolver = Resolver::new(interpreter);
 
@@ -347,18 +349,30 @@ mod tests {
         assert!(resolver.errors.is_empty(), "Expected no errors");
     }
 
-    // #[test]
-    // fn test_resolve_with_errors() {
-    //     let interpreter = Interpreter::new(Vec::new());
-    //     let mut resolver = Resolver::new(interpreter);
 
-    //     // Create a return statement with a Token instead of a String
-    //     let return_token = Token::new(TokenType::Return, "return".to_string(), None, 1, 1); // Adjust line and col as needed
-    //     let stmts = vec![Stmt::Return { keyword: return_token, value: None }];
-    //     let result = resolver.resolve(stmts).0;
+    #[test]
+    fn test_resolve_vec_stmt() {
+        // Step 1: Create the statements to resolve
+        let stmt1 = Stmt::Print {
+            expression: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
+        };
+        let stmt2 = Stmt::Var {
+            name: "x".to_string(),
+            initializer: Some(Expr::Literal { value: LiteralType::Number(10.0) }),
+            line: 1,
+            column: 5,
+        };
 
-    //     // Check that it failed with an error
-    //     assert!(result.is_err(), "Expected resolve result to be Err");
-    //     assert!(!resolver.errors.is_empty(), "Expected at least one error");
-    // }
+        let stmts = vec![stmt1, stmt2];
+
+        let interpreter = Interpreter::new(Vec::new());
+
+        let mut resolver = Resolver::new(interpreter);
+
+        resolver.resolve_vec_stmt(stmts);
+    
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
+    
+    
 }
