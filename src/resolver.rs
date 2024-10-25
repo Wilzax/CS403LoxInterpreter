@@ -333,4 +333,32 @@ mod tests {
         assert_eq!(resolver.state.function, FunctionState::None, "Expected function state to be None");
         assert_eq!(resolver.current_class, ClassState::None, "Expected current class to be None");
     }
+
+
+    #[test]
+    fn test_resolve_no_errors() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        let stmts = Vec::<Stmt>::new(); 
+        let result = resolver.resolve(stmts).0; 
+
+        assert_eq!(result, Ok(true), "Expected resolve result to be Ok(true)");
+        assert!(resolver.errors.is_empty(), "Expected no errors");
+    }
+
+    // #[test]
+    // fn test_resolve_with_errors() {
+    //     let interpreter = Interpreter::new(Vec::new());
+    //     let mut resolver = Resolver::new(interpreter);
+
+    //     // Create a return statement with a Token instead of a String
+    //     let return_token = Token::new(TokenType::Return, "return".to_string(), None, 1, 1); // Adjust line and col as needed
+    //     let stmts = vec![Stmt::Return { keyword: return_token, value: None }];
+    //     let result = resolver.resolve(stmts).0;
+
+    //     // Check that it failed with an error
+    //     assert!(result.is_err(), "Expected resolve result to be Err");
+    //     assert!(!resolver.errors.is_empty(), "Expected at least one error");
+    // }
 }
