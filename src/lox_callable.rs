@@ -1,19 +1,12 @@
-use std::array::IntoIter;
-use std::borrow::BorrowMut;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::fmt;
-use crate::environment;
-use crate::interpreter;
+
 use crate::interpreter::*;
 use crate::lox_instance::*;
-use crate::parser::*;
 use crate::environment::*;
 use crate::expr::*;
 use crate::scanner::*;
 use crate::stmt::*;
-//fixing commit messages
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NativeFunction{
@@ -192,4 +185,4 @@ impl UserDefined{
             is_init: self.is_init
         }
     }
-}
+} 

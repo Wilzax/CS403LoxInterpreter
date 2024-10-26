@@ -6,9 +6,10 @@ use std::fs;
 use std::io::Error;
 use std::str;
 use text_io::read;
+
 use crate::interpreter::Interpreter;
-use crate::parser::{self, ParserError};
-use crate::resolver::{self, Resolver};
+use crate::parser::{self};
+use crate::resolver::Resolver;
 //fixing commit messages
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
@@ -433,11 +434,11 @@ pub(crate) fn run(source: String) ->(){
     let stmt = parser::parse_begin(tokens.clone());
     match stmt{
         Ok(stmt) => {
-            let mut interpreter = Interpreter::new(stmt.clone());
+            let interpreter = Interpreter::new(stmt.clone());
             let mut resolver = Resolver::new(interpreter);
             let resolved = resolver.resolve(stmt.clone()); 
             match resolved.0{
-                Ok(good) => {
+                Ok(_good) => {
                     //println!("Made through resolving");
                     let mut inter = resolved.1.clone();
                     let interp = inter.interpret(stmt);
