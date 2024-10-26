@@ -262,9 +262,17 @@ impl Resolver{
         }
     }
 
-    fn query(&mut self, name: String, state: bool) -> bool{
-        return self.scopes.last().and_then(|scope| scope.get(&name)) == Some(&state);
+    fn query(&mut self, name: String, state: bool) -> bool {
+        for scope in self.scopes.iter().rev() {
+            if let Some(&val) = scope.get(&name) {
+                if val == state {
+                    return true;
+                }
+            }
+        }
+        false
     }
+    
 
     fn resolve_local(&mut self, name: String, expr: Expr){
         for (depth, scope) in self.scopes.iter().rev().enumerate(){
@@ -553,4 +561,182 @@ mod tests {
 
         assert!(resolver.scopes.is_empty(), "Expected all scopes to be removed after scoped block");
     }
+
+    #[test]
+    fn test_control_flow_resolution() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+    
+        let condition = Expr::Literal { value: LiteralType::Number(1.0) };
+        let then_branch = Stmt::Print {
+            expression: Box::new(Expr::Literal { value: LiteralType::Number(42.0) }),
+        };
+        let else_branch = Some(Box::new(Stmt::Print {
+            expression: Box::new(Expr::Literal { value: LiteralType::Number(0.0) }),
+        }));
+    
+        let if_stmt = Stmt::If {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch,
+        };
+    
+        resolver.resolve_stmt(if_stmt);
+    
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
+    
+    #[test]
+    fn test_class_resolution() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        let method = Stmt::Function {
+            name: "method_name".to_string(),
+            parameters: vec![],
+            body: Box::new(vec![
+                Stmt::Print {
+                    expression: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
+                }
+            ]),
+        };
+    
+        let class_stmt = Stmt::Class {
+            name: "MyClass".to_string(),
+            superclass: None,
+            methods: Box::new(vec![method]),
+        };
+    
+        resolver.resolve_stmt(class_stmt);
+
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
+
+    #[test]
+    fn test_nested_scope_resolution() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        resolver.begin_scope();
+        resolver.declare("var1".to_string());
+        resolver.define("var1".to_string());
+        assert_eq!(resolver.scopes.len(), 1, "Expected one scope to be present");
+
+        resolver.begin_scope();
+        resolver.declare("var2".to_string());
+        resolver.define("var2".to_string());
+        assert_eq!(resolver.scopes.len(), 2, "Expected two scopes to be present");
+    
+        let var1_accessible = resolver.query("var1".to_string(), true);
+        assert!(var1_accessible, "Expected 'var1' to be accessible in nested scope");
+    
+        let var2_accessible = resolver.query("var2".to_string(), true);
+        assert!(var2_accessible, "Expected 'var2' to be accessible in nested scope");
+
+        resolver.end_scope();
+        assert_eq!(resolver.scopes.len(), 1, "Expected one scope after ending nested scope");
+
+        let var2_not_accessible = resolver.query("var2".to_string(), true);
+        assert!(!var2_not_accessible, "Expected 'var2' to be out of scope after ending nested scope");
+
+        resolver.end_scope();
+        assert_eq!(resolver.scopes.len(), 0, "Expected no scopes to be present after ending all scopes");
+    } 
+    
+    #[test]
+    fn test_state_specific_resolution() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        resolver.state.function = FunctionState::Function;
+        resolver.begin_scope();
+        resolver.declare("var_in_function".to_string());
+        resolver.define("var_in_function".to_string());
+        assert!(
+            resolver.query("var_in_function".to_string(), true),
+            "Expected 'var_in_function' to be accessible in function state"
+        );
+        resolver.end_scope();
+
+        resolver.state.function = FunctionState::Init;
+        resolver.begin_scope();
+        resolver.declare("var_in_init".to_string());
+        resolver.define("var_in_init".to_string());
+        assert!(
+            resolver.query("var_in_init".to_string(), true),
+            "Expected 'var_in_init' to be accessible in init state"
+        );
+        resolver.end_scope();
+
+        resolver.state.function = FunctionState::None;
+        assert_eq!(
+            resolver.state.function,
+            FunctionState::None,
+            "Expected function state to be None"
+        );
+    }
+
+    #[test]
+    fn test_complex_expressions_and_statements() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        let left_expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
+            operator: BinaryOpType::Plus,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(2.0) }),
+            line: 1,
+            col: 5,
+        };
+        let right_expr = Expr::Binary {
+            left: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
+            operator: BinaryOpType::Minus,
+            right: Box::new(Expr::Literal { value: LiteralType::Number(4.0) }),
+            line: 1,
+            col: 10,
+        };
+        let complex_expr = Expr::Binary {
+            left: Box::new(left_expr),
+            operator: BinaryOpType::Star,
+            right: Box::new(right_expr),
+            line: 1,
+            col: 15,
+        };
+
+        let stmt = Stmt::Print {
+            expression: Box::new(complex_expr),
+        };
+
+        resolver.resolve_stmt(stmt);
+
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
+
+    #[test]
+    fn test_lifecycle() {
+        let interpreter = Interpreter::new(Vec::new());
+        let mut resolver = Resolver::new(interpreter);
+
+        resolver.begin_scope();
+        resolver.declare("var1".to_string());
+        resolver.define("var1".to_string());
+        assert!(resolver.query("var1".to_string(), true), "Expected 'var1' to be accessible in scope");
+
+        resolver.end_scope();
+        assert!(!resolver.query("var1".to_string(), true), "Expected 'var1' to be out of scope after ending scope");
+
+        resolver.begin_scope();
+        resolver.declare("var2".to_string());
+        resolver.define("var2".to_string());
+        assert!(resolver.query("var2".to_string(), true), "Expected 'var2' to be accessible in new scope");
+
+        resolver.state.function = FunctionState::Function;
+        resolver.declare("var_in_function".to_string());
+        resolver.define("var_in_function".to_string());
+        assert!(resolver.query("var_in_function".to_string(), true), "Expected 'var_in_function' to be accessible in function state");
+
+        resolver.end_scope();
+        assert!(!resolver.query("var2".to_string(), true), "Expected 'var2' to be out of scope after ending scope");
+        assert!(!resolver.query("var_in_function".to_string(), true), "Expected 'var_in_function' to be out of scope after ending scope");
+    } 
 }
