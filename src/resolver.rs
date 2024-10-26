@@ -544,5 +544,37 @@ mod tests {
         assert!(resolver.errors.is_empty(), "Expected no errors after resolving local");
     }
     
+    #[test]
+    fn test_resolve_function() {
+        // Step 1: Create a function statement to resolve
+        let function_stmt = Stmt::Function {
+            name: "my_function".to_string(),
+            parameters: vec![
+                crate::scanner::Token {
+                    token_type: crate::scanner::TokenType::Identifier,
+                    lexeme: b"param".to_vec(),
+                    literal: None,
+                    line: 1,
+                    column: 5,
+                }
+            ],
+            body: Box::new(vec![
+                Stmt::Print {
+                    expression: Box::new(Expr::Literal { value: LiteralType::Number(42.0) }),
+                }
+            ]),
+        };
     
+        // Step 2: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 3: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 4: Call resolve_function
+        resolver.resolve_function(function_stmt.clone(), FunctionState::Function);
+    
+        // Step 5: Assert that the resolver did not encounter any errors
+        assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
+    }
 }
