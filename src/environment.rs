@@ -827,5 +827,39 @@ mod tests {
         let ancestor_2 = inner_env.ancestor(2);
         assert_eq!(ancestor_2.get(&expr_x).unwrap(), Value::Number(42.0));
     }
+
+    #[test]
+    fn test_undefined_variable_error() {
+        let env = Environment::default();
+
+        let expr_undefined = Expr::Variable {
+            name: "undefined_var".to_string(),
+            line: 1,
+            col: 1,
+        };
+
+        let result = env.get(&expr_undefined);
+        assert!(result.is_err());
+    }
+    
+    
+
+    #[test]
+    fn test_update_existing_variable() {
+        let mut env = Environment::default();
+        env.define("x".to_string(), 1, 1, Some(Value::Number(42.0)));
+
+        env.define("x".to_string(), 1, 1, Some(Value::Number(100.0)));
+
+        let expr_x = Expr::Variable {
+            name: "x".to_string(),
+            line: 1,
+            col: 1,
+        };
+
+        let result = env.get(&expr_x);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Value::Number(100.0));
+    }
     
 }
