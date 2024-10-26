@@ -362,13 +362,13 @@ mod tests {
             line: 1,
             column: 5,
         };
-
+    
         let stmts = vec![stmt1, stmt2];
-
+    
         let interpreter = Interpreter::new(Vec::new());
-
+    
         let mut resolver = Resolver::new(interpreter);
-
+    
         resolver.resolve_vec_stmt(stmts);
     
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
@@ -443,7 +443,7 @@ mod tests {
         // Step 5: Assert that the resolver did not encounter any errors
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
-
+    
     #[test]
     fn test_declare() {
         // Step 1: Initialize the Interpreter
@@ -463,7 +463,7 @@ mod tests {
         assert!(current_scope.contains_key("test_var"), "Expected 'test_var' to be declared in the current scope");
         assert!(!current_scope["test_var"], "Expected 'test_var' to be declared but not defined");
     }
-
+    
     #[test]
     fn test_define() {
         // Step 1: Initialize the Interpreter
@@ -493,7 +493,7 @@ mod tests {
         assert!(!resolver.errors.is_empty(), "Expected an error for undefined variable");
         assert_eq!(resolver.errors[0], "Variable undefined_var is not defined", "Expected error message for undefined variable");
     }
-
+    
     #[test]
     fn test_query() {
         // Step 1: Initialize the Interpreter
@@ -523,7 +523,7 @@ mod tests {
         let query_result = resolver.query("undefined_var".to_string(), false);
         assert!(!query_result, "Expected 'undefined_var' not to be found");
     }
-
+    
     #[test]
     fn test_resolve_local() {
         // Step 1: Initialize the Interpreter
@@ -577,4 +577,62 @@ mod tests {
         // Step 5: Assert that the resolver did not encounter any errors
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
+
+    #[test]
+    fn test_begin_scope() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Call begin_scope to start a new scope
+        resolver.begin_scope();
+    
+        // Step 4: Assert that a new scope was added
+        assert_eq!(resolver.scopes.len(), 1, "Expected one scope to be added");
+    }
+
+    #[test]
+    fn test_end_scope() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Begin a new scope
+        resolver.begin_scope();
+    
+        // Step 4: Assert that a new scope was added
+        assert_eq!(resolver.scopes.len(), 1, "Expected one scope to be added");
+    
+        // Step 5: Call end_scope to remove the last scope
+        resolver.end_scope();
+    
+        // Step 6: Assert that the scope was removed
+        assert_eq!(resolver.scopes.len(), 0, "Expected the scope to be removed");
+    }
+
+    #[test]
+    fn test_scoped() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Call scoped with a closure that declares and defines a variable
+        resolver.scoped(|res| {
+            res.declare("scoped_var".to_string());
+            res.define("scoped_var".to_string());
+            assert!(res.scopes.last().unwrap().contains_key("scoped_var"), "Expected 'scoped_var' to be in the current scope");
+            assert!(res.scopes.last().unwrap()["scoped_var"], "Expected 'scoped_var' to be defined");
+        });
+    
+        // Step 4: Assert that the scope was removed
+        assert!(resolver.scopes.is_empty(), "Expected all scopes to be removed after scoped block");
+    }
+    
+    
 }
