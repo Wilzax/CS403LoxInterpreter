@@ -51,7 +51,7 @@ impl Resolver{
             errors: Vec::new(),
             state: ResolverState::default(),
             current_class: ClassState::None
-        }
+        }        
     }
 
     pub fn resolve(&mut self, stmts: Vec<Stmt>) -> (Result<bool, Vec<String>>, &Interpreter){
@@ -523,5 +523,26 @@ mod tests {
         let query_result = resolver.query("undefined_var".to_string(), false);
         assert!(!query_result, "Expected 'undefined_var' not to be found");
     }
+
+    #[test]
+    fn test_resolve_local() {
+        // Step 1: Initialize the Interpreter
+        let interpreter = Interpreter::new(Vec::new());
+    
+        // Step 2: Initialize the Resolver
+        let mut resolver = Resolver::new(interpreter);
+    
+        // Step 3: Begin a new scope and add variable
+        resolver.begin_scope();
+        resolver.declare("test_var".to_string());
+    
+        // Step 4: Call resolve_local
+        let expr = Expr::Literal { value: LiteralType::Number(1.0) };
+        resolver.resolve_local("test_var".to_string(), expr);
+    
+        // Step 5: Assert that the resolver has no errors
+        assert!(resolver.errors.is_empty(), "Expected no errors after resolving local");
+    }
+    
     
 }
