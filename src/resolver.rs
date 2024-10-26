@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_resolver_new() {
-        let interpreter = Interpreter::new(Vec::<Stmt>::new()); // Pass an empty Vec<Stmt> as required
+        let interpreter = Interpreter::new(Vec::<Stmt>::new());
         let resolver = Resolver::new(interpreter);
 
         assert!(resolver.scopes.is_empty(), "Expected scopes to be empty");
@@ -336,23 +336,20 @@ mod tests {
         assert_eq!(resolver.current_class, ClassState::None, "Expected current class to be None");
     }
 
-
     #[test]
     fn test_resolve() {
         let interpreter = Interpreter::new(Vec::new());
         let mut resolver = Resolver::new(interpreter);
 
-        let stmts = Vec::<Stmt>::new(); 
-        let result = resolver.resolve(stmts).0; 
+        let stmts = Vec::<Stmt>::new();
+        let result = resolver.resolve(stmts).0;
 
         assert_eq!(result, Ok(true), "Expected resolve result to be Ok(true)");
         assert!(resolver.errors.is_empty(), "Expected no errors");
     }
 
-
     #[test]
     fn test_resolve_vec_stmt() {
-        // Step 1: Create the statements to resolve
         let stmt1 = Stmt::Print {
             expression: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
         };
@@ -376,7 +373,6 @@ mod tests {
     
     #[test]
     fn test_resolve_stmt() {
-        // Step 1: Create the statements to resolve
         let stmt_block = Stmt::Block {
             statements: vec![Stmt::Print {
                 expression: Box::new(Expr::Literal { value: LiteralType::Number(1.0) }),
@@ -394,24 +390,19 @@ mod tests {
             column: 5,
         };
     
-        // Step 2: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
     
-        // Step 3: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
     
-        // Step 4: Call resolve_stmt for each statement
         resolver.resolve_stmt(stmt_block.clone());
         resolver.resolve_stmt(stmt_class.clone());
         resolver.resolve_stmt(stmt_var.clone());
     
-        // Step 5: Assert that the resolver did not encounter any errors
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
     
     #[test]
     fn test_resolve_expr() {
-        // Step 1: Create the expressions to resolve
         let expr_assign = Expr::Assign {
             name: "a".to_string(),
             line: 1,
@@ -429,36 +420,24 @@ mod tests {
             expression: Box::new(Expr::Literal { value: LiteralType::Number(3.0) }),
         };
     
-        // Step 2: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 3: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 4: Call resolve_expr for each expression
+
         resolver.resolve_expr(expr_assign.clone());
         resolver.resolve_expr(expr_binary.clone());
         resolver.resolve_expr(expr_grouping.clone());
-    
-        // Step 5: Assert that the resolver did not encounter any errors
+
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
     
     #[test]
     fn test_declare() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Begin a new scope
+
         resolver.begin_scope();
-    
-        // Step 4: Call declare to add a variable to the scope
         resolver.declare("test_var".to_string());
-    
-        // Step 5: Assert that the variable is in the current scope
+
         let current_scope = resolver.scopes.last().expect("Expected at least one scope");
         assert!(current_scope.contains_key("test_var"), "Expected 'test_var' to be declared in the current scope");
         assert!(!current_scope["test_var"], "Expected 'test_var' to be declared but not defined");
@@ -466,87 +445,55 @@ mod tests {
     
     #[test]
     fn test_define() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Begin a new scope
         resolver.begin_scope();
-    
-        // Step 4: Declare a variable
         resolver.declare("test_var".to_string());
-    
-        // Step 5: Call define to define the variable
         resolver.define("test_var".to_string());
-    
-        // Step 6: Assert that the variable is defined in the current scope
+
         let current_scope = resolver.scopes.last().expect("Expected at least one scope");
         assert!(current_scope.contains_key("test_var"), "Expected 'test_var' to be defined in the current scope");
         assert!(current_scope["test_var"], "Expected 'test_var' to be defined");
-    
-        // Step 7: Attempt to define a variable that hasn't been declared
+
         resolver.define("undefined_var".to_string());
-    
-        // Step 8: Assert that an error was recorded for the undefined variable
         assert!(!resolver.errors.is_empty(), "Expected an error for undefined variable");
         assert_eq!(resolver.errors[0], "Variable undefined_var is not defined", "Expected error message for undefined variable");
     }
     
     #[test]
     fn test_query() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Begin a new scope
         resolver.begin_scope();
-    
-        // Step 4: Declare a variable with a state of false (not defined)
         resolver.declare("test_var".to_string());
-    
-        // Step 5: Query the variable with the expected state
+
         let query_result = resolver.query("test_var".to_string(), false);
         assert!(query_result, "Expected 'test_var' to be found with state false");
-    
-        // Step 6: Define the variable
+
         resolver.define("test_var".to_string());
-    
-        // Step 7: Query the variable with the updated state
+
         let query_result = resolver.query("test_var".to_string(), true);
         assert!(query_result, "Expected 'test_var' to be found with state true");
-    
-        // Step 8: Query a variable that doesn't exist
+
         let query_result = resolver.query("undefined_var".to_string(), false);
         assert!(!query_result, "Expected 'undefined_var' not to be found");
     }
     
     #[test]
     fn test_resolve_local() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Begin a new scope and add variable
         resolver.begin_scope();
         resolver.declare("test_var".to_string());
-    
-        // Step 4: Call resolve_local
+
         let expr = Expr::Literal { value: LiteralType::Number(1.0) };
         resolver.resolve_local("test_var".to_string(), expr);
-    
-        // Step 5: Assert that the resolver has no errors
+
         assert!(resolver.errors.is_empty(), "Expected no errors after resolving local");
     }
     
     #[test]
     fn test_resolve_function() {
-        // Step 1: Create a function statement to resolve
         let function_stmt = Stmt::Function {
             name: "my_function".to_string(),
             parameters: vec![
@@ -565,74 +512,47 @@ mod tests {
             ]),
         };
     
-        // Step 2: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 3: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 4: Call resolve_function
         resolver.resolve_function(function_stmt.clone(), FunctionState::Function);
-    
-        // Step 5: Assert that the resolver did not encounter any errors
+
         assert!(resolver.errors.is_empty(), "Resolver encountered errors: {:?}", resolver.errors);
     }
 
     #[test]
     fn test_begin_scope() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Call begin_scope to start a new scope
         resolver.begin_scope();
-    
-        // Step 4: Assert that a new scope was added
+
         assert_eq!(resolver.scopes.len(), 1, "Expected one scope to be added");
     }
 
     #[test]
     fn test_end_scope() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Begin a new scope
         resolver.begin_scope();
-    
-        // Step 4: Assert that a new scope was added
+
         assert_eq!(resolver.scopes.len(), 1, "Expected one scope to be added");
-    
-        // Step 5: Call end_scope to remove the last scope
+
         resolver.end_scope();
-    
-        // Step 6: Assert that the scope was removed
+
         assert_eq!(resolver.scopes.len(), 0, "Expected the scope to be removed");
     }
 
     #[test]
     fn test_scoped() {
-        // Step 1: Initialize the Interpreter
         let interpreter = Interpreter::new(Vec::new());
-    
-        // Step 2: Initialize the Resolver
         let mut resolver = Resolver::new(interpreter);
-    
-        // Step 3: Call scoped with a closure that declares and defines a variable
+
         resolver.scoped(|res| {
             res.declare("scoped_var".to_string());
             res.define("scoped_var".to_string());
             assert!(res.scopes.last().unwrap().contains_key("scoped_var"), "Expected 'scoped_var' to be in the current scope");
             assert!(res.scopes.last().unwrap()["scoped_var"], "Expected 'scoped_var' to be defined");
         });
-    
-        // Step 4: Assert that the scope was removed
+
         assert!(resolver.scopes.is_empty(), "Expected all scopes to be removed after scoped block");
     }
-    
-    
 }
