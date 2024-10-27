@@ -631,6 +631,27 @@ mod tests{
         assert_eq!(tokens.len(), 1); 
         assert_eq!(tokens[0].token_type, TokenType::Eof);
     }
+
+    #[test]
+    fn scan_with_whitespace() {
+        let source = "( )   \t\n{ }\n\t[ ] \r\n ,\t. - + ; : * %\n".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        let expected_tokens = vec![
+            TokenType::LeftParen, TokenType::RightParen,
+            TokenType::LeftBrace, TokenType::RightBrace,
+            TokenType::LeftBracket, TokenType::RightBracket,
+            TokenType::Comma, TokenType::Dot,
+            TokenType::Minus, TokenType::Plus,
+            TokenType::Semicolon, TokenType::Colon,
+            TokenType::Star, TokenType::Mod,
+            TokenType::Eof
+        ];
+    
+        let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
+        assert_eq!(expected_tokens, actual_tokens);
+    }
 }
 
 
