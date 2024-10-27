@@ -355,13 +355,18 @@ impl Scanner{
         }
     }
     
-    fn discard_comment(&mut self) -> (){
+    fn discard_comment(&mut self) {
         let mut next_char: char = self.peek();
-        while next_char != '\n' && !self.is_finished(){
+        while next_char != '\n' && !self.is_finished() {
             self.advance_char();
             next_char = self.peek();
         }
+        if next_char == '\n' {
+            self.line += 1;
+            self.column = 0;
+        }
     }
+    
 
     fn discard_block_comment(&mut self) -> (){
         while !self.is_finished(){
@@ -651,6 +656,71 @@ mod tests{
     
         let actual_tokens: Vec<TokenType> = tokens.into_iter().map(|t| t.token_type).collect();
         assert_eq!(expected_tokens, actual_tokens);
+    }
+
+    #[test]
+    fn test_advance_char() {
+        let source = "abc".to_string();
+        let mut scanner = Scanner::default();
+        scanner.source = source.into_bytes();
+    
+        // Advance the first character
+        let first_char = scanner.advance_char();
+        assert_eq!(first_char, 'a');
+        assert_eq!(scanner.current, 1);
+        assert_eq!(scanner.column, 0);
+    
+        // Advance the second character
+        let second_char = scanner.advance_char();
+        assert_eq!(second_char, 'b');
+        assert_eq!(scanner.current, 2);
+        assert_eq!(scanner.column, 1);
+    
+        // Advance the third character
+        let third_char = scanner.advance_char();
+        assert_eq!(third_char, 'c');
+        assert_eq!(scanner.current, 3);
+        assert_eq!(scanner.column, 2);
+    }
+    
+    #[test]
+    fn test_add_token() {
+        let mut scanner = Scanner::default();
+        scanner.start = 0;
+        scanner.current = 3;
+        scanner.line = 1;
+        scanner.column = 2;
+        scanner.source = "abc".to_string().into_bytes();
+    
+        scanner.add_token(TokenType::Identifier, Some(Literal::Identifier("abc".to_string())));
+    
+        assert_eq!(scanner.tokens.len(), 1);
+        let token = &scanner.tokens[0];
+        assert_eq!(token.token_type, TokenType::Identifier);
+        assert_eq!(token.lexeme, b"abc".to_vec());
+        assert_eq!(token.literal, Some(Literal::Identifier("abc".to_string())));
+        assert_eq!(token.line, 1);
+        assert_eq!(token.column, 2);
+    }
+
+    #[test]
+    fn test_matches() {
+        let source = "== !=".to_string();
+        let mut scanner = Scanner::default();
+        scanner.source = source.into_bytes();
+    
+        scanner.advance_char();
+        let is_match = scanner.matches('=');
+        assert!(is_match);
+        assert_eq!(scanner.current, 2);
+        assert_eq!(scanner.column, 1);
+    
+        scanner.advance_char(); 
+        scanner.advance_char(); 
+        let is_match = scanner.matches('=');
+        assert!(is_match);
+        assert_eq!(scanner.current, 5);
+        assert_eq!(scanner.column, 4);
     }
 }
 
