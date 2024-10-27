@@ -356,16 +356,15 @@ impl Scanner{
     }
     
     fn discard_comment(&mut self) {
-        let mut next_char: char = self.peek();
-        while next_char != '\n' && !self.is_finished() {
+        while !self.is_finished() && self.peek() != '\n' {
             self.advance_char();
-            next_char = self.peek();
         }
-        if next_char == '\n' {
+        if self.peek() == '\n' {
+            self.advance_char(); 
             self.line += 1;
-            self.column = 0;
+            self.column = 0; 
         }
-    }
+    }    
     
 
     fn discard_block_comment(&mut self) -> (){
@@ -722,6 +721,26 @@ mod tests{
         assert_eq!(scanner.current, 5);
         assert_eq!(scanner.column, 4);
     }
+
+    #[test]
+    fn test_discard_comment() {
+        let source = "// this is a comment\n123".to_string();
+        let mut scanner = Scanner::default();
+        scanner.source = source.into_bytes();
+    
+        // Discard the comment
+        scanner.advance_char(); // Skip '/'
+        scanner.advance_char(); // Skip '/'
+        scanner.discard_comment();
+    
+        // Verify the scanner is now at the next line, ready to process '123'
+        assert_eq!(scanner.line, 2);
+        assert_eq!(scanner.column, 0);
+        let next_char = scanner.advance_char();
+        assert_eq!(next_char, '1');
+        assert_eq!(scanner.column, 1);
+    }
+    
 }
 
 
