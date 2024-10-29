@@ -10,7 +10,6 @@ use text_io::read;
 use crate::interpreter::Interpreter;
 use crate::parser::{self};
 use crate::resolver::Resolver;
-//fixing commit messages
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
@@ -371,12 +370,13 @@ impl Scanner{
         while !self.is_finished(){
             if self.peek() == '\n'{
                 self.line += 1;
-                self.column = 0;
+                self.column = 0; 
             }
             let current_char: char = self.advance_char();
             if current_char == '*'{
                 if self.peek() == '/'{
                     self.advance_char();
+                    self.column += 1;
                     return;
                 }
             }
@@ -387,7 +387,7 @@ impl Scanner{
             column: self.column,
         })
     }
-
+    
     fn matches(&mut self, expected_char: char) -> bool{
         if self.is_finished() {
             return false;
@@ -663,19 +663,16 @@ mod tests{
         let mut scanner = Scanner::default();
         scanner.source = source.into_bytes();
     
-        // Advance the first character
         let first_char = scanner.advance_char();
         assert_eq!(first_char, 'a');
         assert_eq!(scanner.current, 1);
         assert_eq!(scanner.column, 0);
-    
-        // Advance the second character
+
         let second_char = scanner.advance_char();
         assert_eq!(second_char, 'b');
         assert_eq!(scanner.current, 2);
         assert_eq!(scanner.column, 1);
-    
-        // Advance the third character
+
         let third_char = scanner.advance_char();
         assert_eq!(third_char, 'c');
         assert_eq!(scanner.current, 3);
@@ -727,18 +724,195 @@ mod tests{
         let source = "// this is a comment\n123".to_string();
         let mut scanner = Scanner::default();
         scanner.source = source.into_bytes();
-    
-        // Discard the comment
-        scanner.advance_char(); // Skip '/'
-        scanner.advance_char(); // Skip '/'
+
+        scanner.advance_char();
+        scanner.advance_char(); 
         scanner.discard_comment();
-    
+
         // Verify the scanner is now at the next line, ready to process '123'
         assert_eq!(scanner.line, 2);
         assert_eq!(scanner.column, 0);
         let next_char = scanner.advance_char();
         assert_eq!(next_char, '1');
         assert_eq!(scanner.column, 1);
+    }
+
+    #[test]
+    fn test_discard_block_comment() {
+        let source = "/* this is a block comment */123".to_string();
+        let mut scanner = Scanner::default();
+        scanner.source = source.into_bytes();
+    
+        scanner.advance_char(); 
+        scanner.advance_char(); 
+        scanner.discard_block_comment();
+    
+        assert_eq!(scanner.line, 1);
+        assert_eq!(scanner.column, 29);
+        
+        let next_char = scanner.advance_char();
+        assert_eq!(next_char, '1');
+        assert_eq!(scanner.column, 30);
+    }
+    
+    #[test]
+    fn test_invalid_character_error() {
+        let source = "@".to_string(); 
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert!(scanner.error.is_some());
+        assert_eq!(scanner.error.unwrap().error, "Scanner can not process @");
+        
+        assert!(tokens.is_empty());
+    }
+
+    #[test]
+    fn test_identifier_edge_cases() {
+        let source = "var1 varWithNumbers123 var123AndSymbols".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 4);
+    
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].literal, Some(Literal::Identifier("var1".to_string())));
+    
+        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[1].literal, Some(Literal::Identifier("varWithNumbers123".to_string())));
+    
+        assert_eq!(tokens[2].token_type, TokenType::Identifier);
+        assert_eq!(tokens[2].literal, Some(Literal::Identifier("var123AndSymbols".to_string())));
+    
+        assert_eq!(tokens[3].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_whitespace_and_mixed_whitespace() {
+        let source = "   \t\nvar1  \tvar2\n   var3\t\n".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 4); 
+    
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].literal, Some(Literal::Identifier("var1".to_string())));
+    
+        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[1].literal, Some(Literal::Identifier("var2".to_string())));
+    
+        assert_eq!(tokens[2].token_type, TokenType::Identifier);
+        assert_eq!(tokens[2].literal, Some(Literal::Identifier("var3".to_string())));
+    
+        assert_eq!(tokens[3].token_type, TokenType::Eof);
+    }
+    
+    #[test]
+    fn test_keyword_identifier_edge_cases() {
+        let source = "class var variableClass className fun functionName".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 7); 
+    
+        assert_eq!(tokens[0].token_type, TokenType::Class);
+        assert_eq!(tokens[1].token_type, TokenType::Var);
+        assert_eq!(tokens[2].token_type, TokenType::Identifier);
+        assert_eq!(tokens[2].literal, Some(Literal::Identifier("variableClass".to_string())));
+    
+        assert_eq!(tokens[3].token_type, TokenType::Identifier);
+        assert_eq!(tokens[3].literal, Some(Literal::Identifier("className".to_string())));
+    
+        assert_eq!(tokens[4].token_type, TokenType::Fun);
+        assert_eq!(tokens[5].token_type, TokenType::Identifier);
+        assert_eq!(tokens[5].literal, Some(Literal::Identifier("functionName".to_string())));
+    
+        assert_eq!(tokens[6].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_string_escapes() {
+        let source = "\"hello\nworld\" \"escape\\sequence\"".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 3); 
+    
+        assert_eq!(tokens[0].token_type, TokenType::String);
+        assert_eq!(tokens[0].literal, Some(Literal::String("hello\nworld".to_string())));
+    
+        assert_eq!(tokens[1].token_type, TokenType::String);
+        assert_eq!(tokens[1].literal, Some(Literal::String("escape\\sequence".to_string())));
+    
+        assert_eq!(tokens[2].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_incomplete_tokens() {
+        let source = "! = < >!".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 6);
+    
+        assert_eq!(tokens[0].token_type, TokenType::Bang);
+        assert_eq!(tokens[1].token_type, TokenType::Equal);
+        assert_eq!(tokens[2].token_type, TokenType::Less);
+        assert_eq!(tokens[3].token_type, TokenType::Greater);
+        assert_eq!(tokens[4].token_type, TokenType::Bang);
+        assert_eq!(tokens[5].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_number_edge_cases() {
+        let source = "0 123 45.67 0.001 123.0".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 6); 
+    
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].literal, Some(Literal::Number(0.0)));
+    
+        assert_eq!(tokens[1].token_type, TokenType::Number);
+        assert_eq!(tokens[1].literal, Some(Literal::Number(123.0)));
+    
+        assert_eq!(tokens[2].token_type, TokenType::Number);
+        assert_eq!(tokens[2].literal, Some(Literal::Number(45.67)));
+    
+        assert_eq!(tokens[3].token_type, TokenType::Number);
+        assert_eq!(tokens[3].literal, Some(Literal::Number(0.001)));
+    
+        assert_eq!(tokens[4].token_type, TokenType::Number);
+        assert_eq!(tokens[4].literal, Some(Literal::Number(123.0)));
+    
+        assert_eq!(tokens[5].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_boundary_with_extremely_long_input() {
+        let source = "a".repeat(1_000_000); 
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+    
+        assert_eq!(tokens.len(), 2); 
+    
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].literal, Some(Literal::Identifier("a".repeat(1_000_000))));
+        assert_eq!(tokens[1].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_unterminated_block_comment_with_new_lines() {
+        let source = "/* This is an unterminated block comment\n with multiple lines\n and more text".to_string();
+        let mut scanner = Scanner::default();
+        scanner.source = source.clone().into_bytes();
+        scanner.scan_tokens(source);
+    
+        assert!(scanner.error.is_some());
+        assert_eq!(scanner.error.unwrap().error, "Unclosed block comment");
+    
+        assert_eq!(scanner.tokens.len(), 0);
     }
     
 }
