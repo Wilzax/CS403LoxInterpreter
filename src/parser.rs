@@ -169,7 +169,6 @@ impl Parser{
             return self.print_statement();
         }
         if self.matches(vec![TokenType::LeftBrace]){
-            //println!("Kill me");
             let statements: Vec<Stmt> = self.block()?;
             return Ok(Stmt::Block { statements: statements });
         }
@@ -536,7 +535,7 @@ impl Parser{
                 Err(err) => return Err(err)
             }
         }
-        if self.matches(vec![TokenType::This]){
+        if self.matches(vec![TokenType::This]) {
             return Ok(Expr::This { keyword: String::from_utf8(self.previous().lexeme).unwrap() })
         }
         if self.matches(vec![TokenType::Identifier]){
@@ -711,11 +710,401 @@ pub fn parse_begin(in_tokens: Vec<Token>) -> Result<Vec<Stmt>, ParserError>{
     
 }
 
+//used for tests
+pub fn stmt_ident(in_stmt: Stmt) -> String{
+    match in_stmt {
+            Stmt::Expr { expression: _ } => return "Expr".to_string(),
+            Stmt::Print { expression: _ } => return "Print".to_string(),
+            Stmt::Var { name: _ , line: _ , column: _ , initializer: _ } => return "Var".to_string(),
+            Stmt::Block { statements: _ } => return "Block".to_string(),
+            Stmt::If { condition: _ , then_branch: _ , else_branch: _ } => return "If".to_string(),
+            Stmt::While { condition: _ , body: _ } => return "While".to_string(),
+            Stmt::Function { name: _ , parameters: _ , body: _ } => return "Function".to_string(),
+            Stmt::Return { keyword: _ , value: _ } => return "Return".to_string(),
+            Stmt::Class { name: _ , superclass: _ , methods: _ } => return "Class".to_string(),
+    }
+}
+
+pub fn expr_ident(in_expr: Expr) -> String{
+    match in_expr {
+        Expr::Binary { left:_, operator:_, right:_, line:_, col:_ } => return "Binary".to_string(),
+        Expr::Grouping { expression:_ } => return "Grouping".to_string(),
+        Expr::Literal { value:_ } => return "Literal".to_string(),
+        Expr::Unary { operator:_, right:_, line:_, col:_ } => return "Unary".to_string(),
+        Expr::Variable { name:_, line:_, col:_ } => return "Variable".to_string(),
+        Expr::Assign { name:_, line:_, column:_, value:_ } => return "Assign".to_string(),
+        Expr::Logical { left:_, operator:_, right:_ } => return "Logical".to_string(),
+        Expr::Call { callee:_, paren:_, arguments:_ } => return "Call".to_string(),
+        Expr::Get { object:_, name:_ } => return "Get".to_string(),
+        Expr::Set { object:_, name:_, value:_ } => return "Set".to_string(),
+        Expr::This { keyword:_ } => return "This".to_string(),
+        Expr::Super { keyword:_, method:_ } => return "Super".to_string(),
+        Expr::None => return "None".to_string(),
+    }
+}
+
+pub fn tokentype_ident(in_token: TokenType) -> String{
+    match in_token {
+        TokenType::LeftParen => return "LeftParen".to_string(),
+        TokenType::RightParen => return "RightParen".to_string(),
+        TokenType::LeftBrace => return "LeftBrace".to_string(),
+        TokenType::RightBrace => return "RightBrace".to_string(),
+        TokenType::LeftBracket => return "LeftBracket".to_string(),
+        TokenType::RightBracket => return "RightBracket".to_string(),
+        TokenType::Comma => return "Comma".to_string(),
+        TokenType::Dot => return "Dot".to_string(),
+        TokenType::Minus => return "Minus".to_string(),
+        TokenType::Plus => return "Plus".to_string(),
+        TokenType::Semicolon => return "Semicolon".to_string(),
+        TokenType::Colon => return "Colon".to_string(),
+        TokenType::Slash => return "Slash".to_string(),
+        TokenType::Star => return "Star".to_string(),
+        TokenType::Mod => return "Mod".to_string(),
+        TokenType::Bang => return "Bang".to_string(),
+        TokenType::BangEqual => return "BangEqual".to_string(),
+        TokenType::Equal => return "Equal".to_string(),
+        TokenType::EqualEqual => return "EqualEqual".to_string(),
+        TokenType::Greater => return "Greater".to_string(),
+        TokenType::GreaterEqual => return "GreaterEqual".to_string(),
+        TokenType::Less => return "Less".to_string(),
+        TokenType::LessEqual => return "LessEqual".to_string(),
+        TokenType::Identifier => return "Identifier".to_string(),
+        TokenType::String => return "String".to_string(),
+        TokenType::Number => return "Number".to_string(),
+        TokenType::And => return "And".to_string(),
+        TokenType::Class => return "Class".to_string(),
+        TokenType::Else => return "Else".to_string(),
+        TokenType::False => return "False".to_string(),
+        TokenType::Fun => return "Fun".to_string(),
+        TokenType::For => return "For".to_string(),
+        TokenType::If => return "If".to_string(),
+        TokenType::Nil => return "Nil".to_string(),
+        TokenType::Or => return "Or".to_string(),
+        TokenType::Print => return "Print".to_string(),
+        TokenType::Return => return "Return".to_string(),
+        TokenType::Super => return "Super".to_string(),
+        TokenType::This => return "This".to_string(),
+        TokenType::True => return "True".to_string(),
+        TokenType::Var => return "Var".to_string(),
+        TokenType::While => return "While".to_string(),
+        TokenType::Lambda => return "Lamba".to_string(),
+        TokenType::Eof => return "Eof".to_string(),
+        TokenType::None => return "None".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests{
-    use expr::BinaryOpType;
+    use crate::scanner::*;
+    use crate::parser::*;
 
-    use super::*;
+    //done
+    #[test]
+    fn test_expr() {
+        let source = "x + 2;".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Expr".to_string());
 
+                if let Stmt::Expr { expression: expr_expr } = &stmt[0] {
+                    //expression
+                    let exprception = *expr_expr.clone();
+                    assert_eq!(expr_ident(exprception), "Binary");
+                }
+
+            },
+            Err(_) => {
+                panic!("Test_expr match for 'stmt' is empty.");
+            }
+        }
+    }
+
+    //done
+    #[test]
+    fn test_print() {
+        let source = "print \"Hello\";".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Print".to_string());
+
+                if let Stmt::Print { expression: print_expr } = &stmt[0] {
+                    //expression
+                    let expr_expr = *print_expr.clone();
+                    assert_eq!(expr_ident(expr_expr), "Literal");
+                }
+            },
+
+            Err(_) => {
+                panic!("Test_print match for 'stmt' is empty.");
+            }
+        }
+    }
+
+    //done
+    #[test]
+    fn test_var() {
+        let source = "var three = 3;".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Var".to_string());
+
+                if let Stmt::Var { name: var_name, line: var_line, column: var_col, initializer: var_init } = &stmt[0] {
+                    //name
+                    assert_eq!(var_name, "three");
+
+                    //line
+                    let assert_var: usize = 1;
+                    assert_eq!(var_line, &assert_var);
+
+                    //column
+                    let assert_col: i64 = 8;
+                    assert_eq!(var_col, &assert_col);
+
+                    //initializer
+                    match var_init.clone() {
+                        Some(n) => {
+                            assert_eq!(expr_ident(n), "Literal");
+                        },
+                        None => {
+                            panic!("Test_block match for 'var_init' is empty.");
+                        }
+                    }
+                }
+            },
+
+            Err(_) => {
+                panic!("Test_var match for 'stmt' is empty.");
+            }  
+        }
+    }
+
+    //done
+    #[test]
+    fn test_block() {
+        let source = "{var x = 3;}".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Block");
+
+                if let Stmt::Block { statements: block_stmts } = &stmt[0] {
+                    assert_eq!(block_stmts.len(), 1);
+                    assert_eq!(stmt_ident(block_stmts[0].clone()), "Var");
+                }
+            },
+            Err(_) => {
+                panic!("Test_block match for 'stmt' is empty.");
+            }
+        }
+    }
+
+    //done
+    #[test]
+    fn test_if() {
+        let source = "if (x == 1) {print \"yes\";} else {x = 2;}".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "If".to_string());
+
+                if let Stmt::If { condition: if_cond, then_branch: if_then, else_branch: if_else } = &stmt[0] {
+                    //condition
+                    let cond_expr = *if_cond.clone();
+                    assert_eq!(expr_ident(cond_expr.clone()), "Binary");
+
+                    //then branch
+                    let then_stmt = *if_then.clone();
+                    assert_eq!(stmt_ident(then_stmt.clone()), "Block");
+
+                    //else branch
+                    match if_else {
+                        Some(p) => {
+                            let else_stmt = *p.clone();
+                            assert_eq!(stmt_ident(else_stmt.clone()), "Block");
+                        },
+                        None => {
+                            panic!("Test_if match for 'if_else' is empty.");
+                        }
+                    }
+                }
+            },
+
+            Err(_) => {
+                panic!("Test_if match for 'stmt' is empty.");
+            }
+            
+        }
+    }
+
+    //done
+    #[test]
+    fn test_while() {
+        let source = "while (x < 2) {print \"yes\";}".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "While".to_string());
+
+                if let Stmt::While { condition: while_cond, body: while_body } = &stmt[0]{
+                    //condition
+                    assert_eq!(expr_ident(while_cond.clone()), "Binary");
+                
+                    //body
+                    let while_stmt = *while_body.clone();
+                    assert_eq!(stmt_ident(while_stmt.clone()), "Block");
+                }
+            },
+
+            Err(_) => {
+            }
+        }
+    }
+    //diff statement types, expr types, go at least 1 layer in on a few statements, and on all of them check the count
+
+    //done
+    #[test]
+    fn test_return() {
+        let source = "return true;".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Return".to_string());
+
+                if let Stmt::Return { keyword: ret_key , value: ret_value } = &stmt[0]{
+                    //keyword
+                    let tokentype_str = tokentype_ident( ret_key.token_type.clone());
+                    assert_eq!(tokentype_str, "Return");
+                    
+                    //value
+                    match ret_value {
+                        Some(l) => {
+                            assert_eq!(expr_ident(l.clone()), "Literal");
+                        },
+                        None => {
+                            panic!("Test_return match for 'ret_value' is empty.");
+                        },
+                    }
+                }
+            },
+            Err(_) => {
+                panic!("Test_return match for 'stmt' has errored.");
+            }
+        }
+    }
+
+    //done
+    #[test]
+    fn test_function() {
+        let source = "fun addTest(a,b) {if (a == 1) {return false;}} ".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Function".to_string());
+
+                if let Stmt::Function { name: fun_name , parameters: fun_param , body: fun_body } = &stmt[0]{
+                    assert_eq!(fun_name, "addTest");
+
+                    assert_eq!(fun_param.len(), 2);
+
+                    let body_vect = *fun_body.clone();
+                    assert_eq!(body_vect.len(), 1);
+                    let body_vect_str = stmt_ident(body_vect[0].clone());
+                    assert_eq!(body_vect_str, "If");
+                }
+            },
+            Err(_) => {
+                panic!("Test_function match for 'stmt' has errored.");
+            }
+        }
+    }
+
+    //done
+    #[test]
+    fn test_class() {
+        let source = "class Test \n{\nex() \n{print a;}}".to_string();
+        let mut scanner = Scanner::default();
+        let tokens = scanner.scan_tokens(source);
+        let stmt = parse_begin(tokens.clone());
+
+        match stmt{
+            Ok(stmt) => {
+                let count = stmt.iter().count();
+                assert_eq!(count, 1);
+                assert_eq!(stmt.len(), 1);
+                assert_eq!(stmt_ident(stmt[0].clone()), "Class".to_string());
+                
+                if let Stmt::Class { name:class_name, superclass:class_super, methods:class_mthd }= &stmt[0]{
+                    //name
+                    assert_eq!(class_name, "Test");
+
+                    //superclass
+                    match class_super {
+                        Some(_) => {
+                            panic!("Test_class match for 'class_super' is not empty.");
+                        },
+                        None => {},
+                    }
+
+                    //method
+                    let vector_mthd = *class_mthd.clone();
+                    assert_eq!(vector_mthd.len(), 1);
+                    let vector_mthd_str = stmt_ident(vector_mthd[0].clone());
+                    assert_eq!(vector_mthd_str, "Function");
+                }
+            },
+            Err(_) => {
+                panic!("Test_class match for 'stmt' has errored.");
+            }
+        }
+    }
 
 }

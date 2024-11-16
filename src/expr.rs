@@ -53,7 +53,6 @@ pub enum Expr {
         value: Box<Expr>
     },
     This{
-        //THIS MAY BE BAD
         keyword: String
     },
     Super{
