@@ -7,16 +7,18 @@ To compile the Lox interpreter, you will need to have Rust installed. You can in
 
 ### 1. Clone the repository to your local machine
 
-### 2. To build the project using Cargo, Rust's build system and package manager:
+### 2. Navigate to the src file in your terminal
+
+### 3. To build the project using Cargo, Rust's build system and package manager:
 cargo build 
 
-### 3a. To run the project in interactive mode:
+### 4a. To run the project in interactive mode:
 cargo run
 
-### 3b. To run the project with an input file:
+### 4b. To run the project with an input file:
 cargo run src/<yourinputfilename.txt>
 
-### 3c. To run tests and ensure everything is working as expected, use:
+### 4c. To run tests and ensure everything is working as expected, use:
 cargo test
 
 
