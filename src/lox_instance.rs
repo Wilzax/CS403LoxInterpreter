@@ -56,15 +56,3 @@ impl LoxInstance{
         return format!("{} instance", self.klass.name);
     }
 }
-
-#[cfg(test)]
-mod tests{
-    use super::*;
-    use crate::scanner::*;
-    use crate::parser::*;
-    use crate::expr::*; 
-    #[test]
-    fn correct_instances_single(){
-
-    }
-}
